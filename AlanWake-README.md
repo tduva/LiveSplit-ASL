@@ -41,6 +41,8 @@ Set up your splits as follows (without the Episodes, those are just for structur
 	* On the Road to Cauldron Lake (16)
 	* The Dark Place (17)
 
+You can download splits that match these from the [Speedrun.com Resources page](http://www.speedrun.com/aw/resources).
+
 ## More Information
 
 * Read the [Livesplit Autosplitter Documentation](https://github.com/LiveSplit/LiveSplit/blob/master/Documentation/Auto-Splitters.md) for information on how Autosplitter scripts work
