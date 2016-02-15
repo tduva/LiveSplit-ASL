@@ -1,41 +1,120 @@
 state("gta_sa") {
-	int playingTime : 0x77CB84;
-	int pedStatus : 0x77CD98, 0x530;
-	int loading : 0x7A67A5;
-	int started : 0x77CEDC;
-	byte menu : 0x7A68A5;
-	int menuItem : 0x7A679C;
-	int eotl : 0x651698;
-	string10 thread : 0x68B42C, 0x8;
+	int version_100_EU : 0x4245BC;
+	int version_100_US : 0x42457C;
+	int version_101_EU : 0x42533C;
+	int version_101_US : 0x4252FC;
+	int version_300_Steam : 0x45EC4A;
+	int version_101_Steam : 0x45DEDA;
 }
 
+state("gta-sa") {
+	int version_100_EU : 0x4245BC;
+	int version_100_US : 0x42457C;
+	int version_101_EU : 0x42533C;
+	int version_101_US : 0x4252FC;
+	int version_300_Steam : 0x45EC4A;
+	int version_101_Steam : 0x45DEDA;
+}
+
+
 init {
+	//print(modules.First().ModuleMemorySize.ToString());
+	// gta-sa.exe 9981952
+
+	var versionValue = 38079;
+	int versionOffset = 0;
+	int playingTime = 0xB7CB84;
+	int startAddr = 0xB7CEDC;
+	int menuAddr = 0xBA68A5;
+	int tagsAddr = 0x69AD74;
+	int threadAddr = 0xA8B42C;
+	print(current.version_100_EU.ToString());
+
+	int moduleSize = modules.First().ModuleMemorySize;
+	if (current.version_100_EU == versionValue
+		|| current.version_100_US == versionValue
+		|| moduleSize == 18313216)
+	{
+		versionOffset = 0;
+		version = "1.0";
+	}
+	if (current.version_101_EU == versionValue
+		|| current.version_101_US == versionValue
+		|| moduleSize == 34471936)
+	{
+		versionOffset = 0x2680;
+		version = "1.01";
+	}
+	if (moduleSize == 17985536)
+	{
+		versionOffset = 0x2680;
+		version = "2.00";
+	}
+	if (current.version_300_Steam == versionValue
+		|| moduleSize == 9691136)
+	{
+		versionOffset = 0x75130;
+		version = "3.00 Steam";
+	}
+	if (current.version_101_Steam == versionValue)
+	{
+		versionOffset = 0x75770;
+		version = "1.01 Steam";
+	}
+	if (moduleSize == 9981952) {
+		versionOffset = 0x77970;
+		version = "Steam";
+		playingTime = 0x80FD74;
+		startAddr = 0x810214;
+		menuAddr = 0x5409BC;
+		threadAddr = 0x702D98;
+	}
+	
+	int offset = -0x400000+versionOffset;
+	if (version != "Steam") {
+		playingTime += offset;
+		startAddr += offset;
+		menuAddr += offset;
+		threadAddr += offset;
+	}
+	
 	/*
 	 * Add splits not to split to this list. Lines starting with "//" are comments and not active
 	 * in the blacklist (thus those still get split).
+	 *
+	 * Example:
+	 * //"Bustedwarp Badlands 1",	// Commented out, will still split
+	 * "End of the Line Part 1",	// Actually on the blacklist, will not split
 	 *
 	 * Some are in the list but commented out because they might commonly not be wanted.
 	 * Otherwise, check out the mission list below for the exact names of missions to add
 	 * to the blacklist.
 	 */
 	vars.blacklist = new List<string> {
-		//# "Special" splits
+
+		//## Special splits
 		//"Bustedwarp Badlands 1",
 		//"Bustedwarp Badlands 2",
 		//"Deathwarp Badlands 1",
 		//"Deathwarp Badlands 2",
-		//"Gang Territories #2", // Start of Cut Throat Business
-		//"any%", // End of any%
+		//"Gang Territories #1",	// Start of Grove 4 Life
+		//"Gang Territories #2",	// Start of Cut Throat Business
+		//"any%",			// End of any%
 
-		//# Those are commonly not split
+		//## Commonly not split
 		"End of the Line Part 1",
 		"End of the Line Part 2",
-		"End of the Line Part 3", // This would be after the credits
+		"End of the Line Part 3",	// This would be after the credits
 
+		//## yesDuping
 		"T-Bone Mendez",
 		"Amphibious Assault",
 		"Ran Fa Li",
+
 	};
+	
+	// Don't edit anything beyond this point unless you know what you are doing
+
 
 	/*
 	 * Memory address and the associated values and missions. Each
@@ -187,7 +266,7 @@ init {
 		}},
 	};
 
-	int offset = -0x400000;	
+	
 	
 
 	// State keeping
@@ -203,6 +282,17 @@ init {
 			) { Name = item.Key.ToString() }
 		);
 	}
+	vars.watchers.Add(new MemoryWatcher<int>(new DeepPointer(playingTime)) { Name = "playingTime" });
+	vars.watchers.Add(new MemoryWatcher<int>(new DeepPointer(0xB7CD98+offset, 0x530)) { Name = "pedStatus" });
+	vars.watchers.Add(new MemoryWatcher<int>(new DeepPointer(0xA51698+offset)) { Name = "eotl" });
+	vars.watchers.Add(new MemoryWatcher<byte>(new DeepPointer(menuAddr)) { Name = "menu" });
+	vars.watchers.Add(new MemoryWatcher<byte>(new DeepPointer(0xBA67A5+offset)) { Name = "loading" });
+	vars.watchers.Add(new MemoryWatcher<byte>(new DeepPointer(startAddr)) { Name = "started" });
+	vars.watchers.Add(new MemoryWatcher<int>(new DeepPointer(tagsAddr)) { Name = "tags" });
+	vars.watchers.Add(new MemoryWatcher<int>(new DeepPointer(0x81CADC)) { Name = "test" });
+	vars.watchers.Add(new StringWatcher(new DeepPointer(threadAddr, 0x8), 10) { Name = "thread" });
+
+	
 	vars.watchers.UpdateAll(game);
 
 
@@ -257,26 +347,23 @@ init {
 		return false;
 	};
 	vars.TrySplit = TrySplit;
-
 	
 
-/*
-	vars.advanced = new Dictionary<string, Func<bool>> {
-		{"Bustedwarp 1", () => {
-			return true;
-		}}
-	};
-*/
-
 	refreshRate = 30;
-	DebugOutput("Initialized");
+	DebugOutput("Initialized (Version "+version+")");
 
 	// Test
 	//print(MissionPassed("Tanker Commander").ToString());
+	vars.lastLoad = 0;
 }
 
-
 update {
+
+	// Update always, to prevent splitting after loading (if possible, doesn't seem to be 100% reliable)
+	vars.watchers.UpdateAll(game);
+
+	//vars.DebugOutput(vars.watchers["thread"].Current+" "+current.thread);
+
 	// Clear list of already executed splits if timer is reset
 	if (timer.CurrentPhase != vars.PrevPhase) {
 		if (timer.CurrentPhase == TimerPhase.NotRunning) {
@@ -285,13 +372,20 @@ update {
 		}
 		vars.PrevPhase = timer.CurrentPhase;
 	}
+	if (vars.watchers["test"].Current != vars.watchers["test"].Old) {
+		vars.DebugOutput("Test: "+vars.watchers["test"].Current);
+	}
 }
 
 split {
-	// Update always, to prevent splitting after loading (if possible, doesn't seem to be 100% reliable)
-	vars.watchers.UpdateAll(game);
-	if (current.loading == 1) {
+	
+	if (vars.watchers["loading"].Current == 1) {
 		vars.DebugOutput("Loading");
+		vars.lastLoad = Environment.TickCount;
+		return false;
+	}
+	if (Environment.TickCount - vars.lastLoad < 500) {
+		vars.DebugOutput("Wait..");
 		return false;
 	}
 
@@ -308,8 +402,9 @@ split {
 	}
 
 	// Busted/Deathwarp
-	if (current.pedStatus != old.pedStatus) {
-		if (current.pedStatus == 63) // Busted
+	var pedStatus = vars.watchers["pedStatus"];
+	if (pedStatus.Current != pedStatus.Old) {
+		if (pedStatus.Current == 63) // Busted
 		{
 			if (vars.Passed("Badlands") && !vars.Passed("Tanker Commander"))
 			{
@@ -320,7 +415,7 @@ split {
 				return vars.TrySplit("Bustedwarp Badlands 2");
 			}
 		}
-		if (current.pedStatus == 55) // Wasted
+		if (pedStatus.Current == 55) // Wasted
 		{
 			if (vars.Passed("Tanker Commander") && !vars.Passed("Body Harvest"))
 			{
@@ -334,7 +429,8 @@ split {
 	}
 
 	// End of any%
-	if (current.eotl == 3 && old.eotl == 2) {
+	var eotl = vars.watchers["eotl"];
+	if (eotl.Current == 3 && eotl.Old == 2) {
 		// This check is probably not necessary since the variable $8014 seems to be
 		// only used in EotL Part 3, but just to be safe.
 		if (vars.Passed("End of the Line Part 2"))
@@ -344,43 +440,51 @@ split {
 	}
 
 	// Starting a certain mission
-	if (current.thread != old.thread) {
-		if (current.thread == "manson5") // Cut Throat Business
+	var thread = vars.watchers["thread"];
+	if (thread.Current != thread.Old) {
+		if (thread.Current == "manson5") // Cut Throat Business
 		{
 			return vars.TrySplit("Gang Territories #2");
 		}
+		else if (thread.Current == "grove2") // Grove 4 Life
+		{
+			return vars.TrySplit("Gang Territories #1");
+		}
+	}
+
+	var tags = vars.watchers["tags"];
+	if (tags.Current > tags.Old) {
+		//vars.DebugOutput("Split Tag");
+		//return true;
 	}
 }
 
 start {
-	if (current.menu != 6) {
+	var menu = vars.watchers["menu"];
+	var playingTime = vars.watchers["playingTime"];
+	var started = vars.watchers["started"];
+	//print(started.Current.ToString()+" "+playingTime.Current.ToString()+" "+menu.Current);
+	if (menu.Current != 6) {
 		return false;
 	}
-	if (current.playingTime > 30000) {
+	if (playingTime.Current > 30000) {
 		return false;
 	}
-/*
-	if (current.menuItem == 2 && current.started == 2 && old.started == 1) {
-		vars.DebugOutput("New Game");
-		return true;
-	} else if (current.menuItem == 0 && current.started == 1 && old.started == 0) {
-		vars.DebugOutput("New Game (fresh start)");
-		return true;
-	}
-*/
+
 	/*
 	 * The value can either switch from 1->2 or from 0->1 when the timer should be
 	 * started, depending on whether the game was started fresh or not. Simply checking
 	 * for an increase after 3 seconds (where the first increase already would have taken
 	 * place) could be an easy workaround.
 	 */
-	if (current.playingTime > 3000 && current.started > old.started) {
+	if (playingTime.Current > 3000 && started.Current > started.Old) {
 		vars.DebugOutput("New Game");
 		return true;
 	}
 }
 
 reset {
+	var playingTime = vars.watchers["playingTime"];
 	/*
 	 * Check if playing time is in the range where the New Game is still starting (before
 	 * intro cutscene) but the timer hasn't started yet. This ensures that the timer is
@@ -390,7 +494,7 @@ reset {
 	 * may be 0 for a bit. In addition, when starting the game, the value may not actually
 	 * be 0.
 	 */
-	if (current.playingTime > 500 && current.playingTime < 1000) {
+	if (playingTime.Current > 500 && playingTime.Current < 1000) {
 		vars.DebugOutput("Reset");
 		return true;
 	}
