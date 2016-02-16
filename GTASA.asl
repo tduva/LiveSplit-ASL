@@ -16,106 +16,7 @@ state("gta-sa") {
 	int version_101_Steam : 0x45DEDA;
 }
 
-
-init {
-	//print(modules.First().ModuleMemorySize.ToString());
-	// gta-sa.exe 9981952
-
-	var versionValue = 38079;
-	int versionOffset = 0;
-	int playingTime = 0xB7CB84;
-	int startAddr = 0xB7CEDC;
-	int menuAddr = 0xBA68A5;
-	int tagsAddr = 0x69AD74;
-	int threadAddr = 0xA8B42C;
-	print(current.version_100_EU.ToString());
-
-	int moduleSize = modules.First().ModuleMemorySize;
-	if (current.version_100_EU == versionValue
-		|| current.version_100_US == versionValue
-		|| moduleSize == 18313216)
-	{
-		versionOffset = 0;
-		version = "1.0";
-	}
-	if (current.version_101_EU == versionValue
-		|| current.version_101_US == versionValue
-		|| moduleSize == 34471936)
-	{
-		versionOffset = 0x2680;
-		version = "1.01";
-	}
-	if (moduleSize == 17985536)
-	{
-		versionOffset = 0x2680;
-		version = "2.00";
-	}
-	if (current.version_300_Steam == versionValue
-		|| moduleSize == 9691136)
-	{
-		versionOffset = 0x75130;
-		version = "3.00 Steam";
-	}
-	if (current.version_101_Steam == versionValue)
-	{
-		versionOffset = 0x75770;
-		version = "1.01 Steam";
-	}
-	if (moduleSize == 9981952) {
-		versionOffset = 0x77970;
-		version = "Steam";
-		playingTime = 0x80FD74;
-		startAddr = 0x810214;
-		menuAddr = 0x5409BC;
-		threadAddr = 0x702D98;
-	}
-	
-	int offset = -0x400000+versionOffset;
-	if (version != "Steam") {
-		playingTime += offset;
-		startAddr += offset;
-		menuAddr += offset;
-		threadAddr += offset;
-	}
-	
-	/*
-	 * Add splits not to split to this list. Lines starting with "//" are comments and not active
-	 * in the blacklist (thus those still get split).
-	 *
-	 * Example:
-	 * //"Bustedwarp Badlands 1",	// Commented out, will still split
-	 * "End of the Line Part 1",	// Actually on the blacklist, will not split
-	 *
-	 * Some are in the list but commented out because they might commonly not be wanted.
-	 * Otherwise, check out the mission list below for the exact names of missions to add
-	 * to the blacklist.
-	 */
-	vars.blacklist = new List<string> {
-
-		//## Special splits
-		//"Bustedwarp Badlands 1",
-		//"Bustedwarp Badlands 2",
-		//"Deathwarp Badlands 1",
-		//"Deathwarp Badlands 2",
-		//"Gang Territories #1",	// Start of Grove 4 Life
-		//"Gang Territories #2",	// Start of Cut Throat Business
-		//"any%",			// End of any%
-
-		//## Commonly not split
-		"End of the Line Part 1",
-		"End of the Line Part 2",
-		"End of the Line Part 3",	// This would be after the credits
-
-		//## yesDuping
-		"T-Bone Mendez",
-		"Amphibious Assault",
-		"Ran Fa Li",
-
-	};
-	
-	// Don't edit anything beyond this point unless you know what you are doing
-
-
+startup {
 	/*
 	 * Memory address and the associated values and missions. Each
 	 * mission is only split once from the start of the timer.
@@ -247,6 +148,9 @@ init {
 			{1, "Misappropriation"},
 			{2, "High Noon"}
 		}},
+		{0xA4A2BC, new Dictionary<int, string> { // $599 (Madd Dogg)
+			{1, "Madd Dogg"}
+		}},
 		{0xA4A328, new Dictionary<int, string> { // $MANSION_TOTAL_PASSED_MISSIONS
 			{1, "A Home in the Hills"},
 			{2, "Vertical Bird"},
@@ -266,9 +170,215 @@ init {
 		}},
 	};
 
-	
-	
 
+	// Utility Functions
+	/*
+	 * Easier debug output.
+	 */
+	Action<string> DebugOutput = (text) => {
+		print("[GTASA Autosplitter] "+text);
+	};
+	vars.DebugOutput = DebugOutput;
+
+
+	//##### Settings #####
+
+	Func<string, bool> missionPresent = m => {
+		foreach (var item in vars.missions) {
+			foreach (var item2 in item.Value) {
+				if (item2.Value == m) {
+					return true;
+				}
+			}
+		}
+		vars.DebugOutput("Mission not found: "+m);
+		return false;
+	};
+
+	// Function to add a list of settings
+	Action<string, List<string>> addSettings = (header, missions) => {
+		foreach (var mission in missions) {
+			if (missionPresent(mission)) {
+				settings.Add(mission, true, mission, header);
+			}
+		}
+	};
+
+	// Function to add a single setting, but check if it's a mission
+	Action<string, bool, string> addMissionCustom = (mission, defaultValue, label) => {
+		if (missionPresent(mission)) {
+			settings.Add(mission, defaultValue, label);
+		}
+	};
+	Action<string> addMission = (mission) => {
+		if (missionPresent(mission)) {
+			settings.Add(mission);
+		}
+	};
+
+	settings.Add("Missions", true);
+	settings.CurrentDefaultParent = "Missions";
+	settings.Add("LS", true, "Los Santos");
+	settings.Add("BL", true, "Badlands");
+	settings.Add("SF", true, "San Fierro");
+	settings.Add("Desert", true);
+	settings.Add("LV", true, "Las Venturas");
+	settings.Add("RTLS", true, "RTLS");
+
+
+
+	addSettings("LS", new List<string>() {
+		"Big Smoke", "Ryder", "Tagging up Turf", "Cleaning the Hood", "Drive-Thru", "Nines and AKs",
+		"OG Loc", "Running Dog", "Drive-By", "Sweet's Girl", "Cesar Vialpando", "High Stakes Lowrider",
+		"Madd Dogg's Rhymes", "Management Issues", "House Party (Cutscene)", "Burning Desire",
+		"Wrong Side of the Tracks", "Just Business", "Doberman", "Gray Imports", "Home Invasion", "House Party",
+		"Catalyst", "Robbing Uncle Sam", "Los Sepulcros", "Reuniting the Families", "The Green Sabre"
+	});
+
+	settings.CurrentDefaultParent = "BL";
+	addMission("Badlands");
+	settings.Add("Bustedwarp BL #1", true, "Bustedwarp Badlands #1");
+	addMission("Tanker Commander");
+	settings.Add("Deathwarp BL #1", true, "Deathwarp Badlands #1");
+	addMission("Body Harvest");
+	settings.Add("Deathwarp BL #2", true, "Deathwarp Badlands #2");
+	addMission("King in Exile");
+	settings.Add("Bustedwarp BL #2", true, "Bustedwarp Badlands #2");
+	addSettings("BL", new List<string>() {
+		"Small Town Bank", "Local Liquor Store",
+		"Against All Odds", "Are You Going To San Fierro?"
+	});
+	
+	addSettings("SF", new List<string>() {
+		"Wear Flowers in your Hair", "555 WE TIP", "Deconstruction", "Photo Opportunity", "Jizzy (Cutscene)",
+		"Jizzy", "T-Bone Mendez", "Mike Toreno", "Outrider", "Snail Trail", "Mountain Cloud Boys", "Ran Fa Li",
+		"Lure", "Amphibious Assault", "Pier 69", "Toreno's Last Flight", "The Da Nang Thang", "Yay Ka-Boom-Boom"
+	});
+	addSettings("Desert", new List<string>() {
+		"Monster", "Highjack", "Interdiction", "Verdant Meadows", "Learning to Fly", "N.O.E."
+	});
+	addSettings("LV", new List<string>() {
+		"Fender Ketchup", "Explosive Situation", "You've Had Your Chips", "Don Peyote", "Intensive Care",
+		"The Meat Business", "Fish in a Barrel", "Madd Dogg", "Misappropriation", "Freefall", "Stowaway",
+		"Black Project", "High Noon", "Green Goo", "Saint Mark's Bistro"
+	});
+	addSettings("RTLS", new List<string>() {
+		"A Home in the Hills", "Vertical Bird", "Home Coming", "Beat Down on B Dup", "Grove 4 Life",
+		"Cut Throat Business", "Riot", "Los Desperados"
+	});
+	settings.CurrentDefaultParent = "RTLS";
+	addMissionCustom("End of the Line Part 1", false, "End of the Line Part 1 (after killing Big Smoke)");
+	addMissionCustom("End of the Line Part 2", false, "End of the Line Part 2 (start of chase)");
+	addMissionCustom("End of the Line Part 3", false, "End of the Line Part 3 (Argh, my fingers!)");
+
+	settings.Add("GT #1", false, "Gang Territories Part 1 (at starting of Grove 4 Life");
+	settings.Add("GT #2", false, "Gang Territories Part 2 (at starting of Cut Throat Business");
+	settings.Add("any%", true, "End of any% (Firetruck -> Bridge Cutscene)");
+
+	settings.CurrentDefaultParent = null;
+
+	settings.Add("Other", true, "Other");
+	settings.CurrentDefaultParent = "Other";
+	settings.Add("100 Tags", false, "100 Tags Done");
+	settings.Add("EachTag", false, "Split each sprayed Tag");
+
+	refreshRate = 30;
+}
+
+init {
+	var versionValue = 38079;
+	int versionOffset = 0;
+
+	int playingTimeAddr = 0xB7CB84;
+	int startAddr = 0xB7CEDC;
+	int menuAddr = 0xBA68A5;
+	int tagsAddr = 0x69AD74;
+	int threadAddr = 0xA8B42C;
+
+	int moduleSize = modules.First().ModuleMemorySize;
+	if (current.version_100_EU == versionValue
+		|| current.version_100_US == versionValue
+		|| moduleSize == 18313216)
+	{
+		versionOffset = 0;
+		version = "1.0";
+	}
+	if (current.version_101_EU == versionValue
+		|| current.version_101_US == versionValue
+		|| moduleSize == 34471936)
+	{
+		versionOffset = 0x2680;
+		version = "1.01";
+	}
+	if (moduleSize == 17985536)
+	{
+		versionOffset = 0x2680;
+		version = "2.00";
+	}
+	if (current.version_300_Steam == versionValue
+		|| moduleSize == 9691136)
+	{
+		versionOffset = 0x75130;
+		version = "3.00 Steam";
+	}
+	if (current.version_101_Steam == versionValue)
+	{
+		versionOffset = 0x75770;
+		version = "1.01 Steam";
+	}
+	if (moduleSize == 9981952) {
+		// More recent Steam Version (no version in menu)
+		versionOffset = 0x77970;
+		version = "Steam";
+		playingTimeAddr = 0x80FD74;
+		startAddr = 0x810214;
+		menuAddr = 0x5409BC;
+		threadAddr = 0x702D98;
+	}
+	
+	int offset = -0x400000+versionOffset;
+	if (version != "Steam") {
+		playingTimeAddr += offset;
+		startAddr += offset;
+		menuAddr += offset;
+		threadAddr += offset;
+	}
+	
+	/*
+	 * Add splits not to split to this list. Lines starting with "//" are comments and not active
+	 * in the blacklist (thus those still get split).
+	 *
+	 * Example:
+	 * //"Bustedwarp Badlands 1",	// Commented out, will still split
+	 * "End of the Line Part 1",	// Actually on the blacklist, will not split
+	 *
+	 * Some are in the list but commented out because they might commonly not be wanted.
+	 * Otherwise, check out the mission list below for the exact names of missions to add
+	 * to the blacklist.
+	 */
+	vars.blacklist = new List<string> {
+
+		//## Special splits
+		//"Bustedwarp Badlands 1",
+		//"Bustedwarp Badlands 2",
+		//"Deathwarp Badlands 1",
+		//"Deathwarp Badlands 2",
+		//"Gang Territories #1",	// Start of Grove 4 Life
+		//"Gang Territories #2",	// Start of Cut Throat Business
+		//"any%",			// End of any%
+
+		//## Commonly not split
+		"End of the Line Part 1",
+		"End of the Line Part 2",
+		"End of the Line Part 3",	// This would be after the credits
+
+		//## yesDuping
+		"T-Bone Mendez",
+		"Amphibious Assault",
+		"Ran Fa Li",
+
+	};
+	
 	// State keeping
 	vars.split = new List<string>();
 	vars.PrevPhase = null;
@@ -282,50 +392,17 @@ init {
 			) { Name = item.Key.ToString() }
 		);
 	}
-	vars.watchers.Add(new MemoryWatcher<int>(new DeepPointer(playingTime)) { Name = "playingTime" });
 	vars.watchers.Add(new MemoryWatcher<int>(new DeepPointer(0xB7CD98+offset, 0x530)) { Name = "pedStatus" });
 	vars.watchers.Add(new MemoryWatcher<int>(new DeepPointer(0xA51698+offset)) { Name = "eotl" });
-	vars.watchers.Add(new MemoryWatcher<byte>(new DeepPointer(menuAddr)) { Name = "menu" });
 	vars.watchers.Add(new MemoryWatcher<byte>(new DeepPointer(0xBA67A5+offset)) { Name = "loading" });
+	vars.watchers.Add(new MemoryWatcher<int>(new DeepPointer(playingTimeAddr)) { Name = "playingTime" });
+	vars.watchers.Add(new MemoryWatcher<byte>(new DeepPointer(menuAddr)) { Name = "menu" });
 	vars.watchers.Add(new MemoryWatcher<byte>(new DeepPointer(startAddr)) { Name = "started" });
 	vars.watchers.Add(new MemoryWatcher<int>(new DeepPointer(tagsAddr)) { Name = "tags" });
-	vars.watchers.Add(new MemoryWatcher<int>(new DeepPointer(0x81CADC)) { Name = "test" });
 	vars.watchers.Add(new StringWatcher(new DeepPointer(threadAddr, 0x8), 10) { Name = "thread" });
-
-	
 	vars.watchers.UpdateAll(game);
 
-
-	// Utility Functions
-	/*
-	 * Easier debug output.
-	 */
-	Action<string> DebugOutput = (text) => {
-		print("[GTASA Autosplitter] "+text);
-	};
-	vars.DebugOutput = DebugOutput;
-
-	/*
-	 * Check if the given mission (the name has to be exact) has
-	 * already been passed, based on the current memory value.
-	 * 
-	 * Returns true if the mission should already have been passed,
-	 * false otherwise.
-	 */
-	Func<string, bool> MissionPassed = m => {
-		foreach (var item in vars.missions) {
-			foreach (var item2 in item.Value) {
-				if (item2.Value == m) {
-					int currentValue = vars.watchers[item.Key.ToString()].Current;
-					DebugOutput("Check: "+m+" "+item2.Key.ToString()+" >= "+currentValue);
-					return currentValue >= item2.Key;
-				}
-			}
-		}
-		DebugOutput("Mission not found: "+m);
-		return false;
-	};
-	vars.Passed = MissionPassed;
+	
 
 	/*
 	 * Check if splitting should occur based on whether this split
@@ -339,18 +416,39 @@ init {
 		if (vars.blacklist.Contains(splitId)) {
 			return false;
 		}
+		if (!settings[splitId]) {
+			return false;
+		}
 		if (!vars.split.Contains(splitId)) {
 			vars.split.Add(splitId);
-			DebugOutput("Split: "+splitId);
+			vars.DebugOutput("Split: "+splitId);
 			return true;
 		}
 		return false;
 	};
 	vars.TrySplit = TrySplit;
-	
 
-	refreshRate = 30;
-	DebugOutput("Initialized (Version "+version+")");
+	/*
+	 * Check if the given mission (the name has to be exact) has
+	 * already been passed, based on the current memory value.
+	 * 
+	 * Returns true if the mission should already have been passed,
+	 * false otherwise.
+	 */
+	Func<string, bool> MissionPassed = m => {
+		foreach (var item in vars.missions) {
+			foreach (var item2 in item.Value) {
+				if (item2.Value == m) {
+					int currentValue = vars.watchers[item.Key.ToString()].Current;
+					vars.DebugOutput("Check: "+m+" "+item2.Key.ToString()+" >= "+currentValue);
+					return currentValue >= item2.Key;
+				}
+			}
+		}
+		vars.DebugOutput("Mission not found: "+m);
+		return false;
+	};
+	vars.Passed = MissionPassed;
 
 	// Test
 	//print(MissionPassed("Tanker Commander").ToString());
@@ -358,11 +456,8 @@ init {
 }
 
 update {
-
 	// Update always, to prevent splitting after loading (if possible, doesn't seem to be 100% reliable)
 	vars.watchers.UpdateAll(game);
-
-	//vars.DebugOutput(vars.watchers["thread"].Current+" "+current.thread);
 
 	// Clear list of already executed splits if timer is reset
 	if (timer.CurrentPhase != vars.PrevPhase) {
@@ -372,13 +467,9 @@ update {
 		}
 		vars.PrevPhase = timer.CurrentPhase;
 	}
-	if (vars.watchers["test"].Current != vars.watchers["test"].Old) {
-		vars.DebugOutput("Test: "+vars.watchers["test"].Current);
-	}
 }
 
 split {
-	
 	if (vars.watchers["loading"].Current == 1) {
 		vars.DebugOutput("Loading");
 		vars.lastLoad = Environment.TickCount;
@@ -408,22 +499,22 @@ split {
 		{
 			if (vars.Passed("Badlands") && !vars.Passed("Tanker Commander"))
 			{
-				return vars.TrySplit("Bustedwarp Badlands 1");
+				return vars.TrySplit("Bustedwarp BL #1");
 			}
 			else if (vars.Passed("King in Exile") && !vars.Passed("Small Town Bank"))
 			{
-				return vars.TrySplit("Bustedwarp Badlands 2");
+				return vars.TrySplit("Bustedwarp BL #2");
 			}
 		}
 		if (pedStatus.Current == 55) // Wasted
 		{
 			if (vars.Passed("Tanker Commander") && !vars.Passed("Body Harvest"))
 			{
-				return vars.TrySplit("Deathwarp Badlands 1");
+				return vars.TrySplit("Deathwarp BL #1");
 			}
 			else if (vars.Passed("Body Harvest") && !vars.Passed("King in Exile"))
 			{
-				return vars.TrySplit("Deathwarp Badlands 2");
+				return vars.TrySplit("Deathwarp BL #2");
 			}
 		}
 	}
@@ -444,18 +535,27 @@ split {
 	if (thread.Current != thread.Old) {
 		if (thread.Current == "manson5") // Cut Throat Business
 		{
-			return vars.TrySplit("Gang Territories #2");
+			return vars.TrySplit("GT #2");
 		}
 		else if (thread.Current == "grove2") // Grove 4 Life
 		{
-			return vars.TrySplit("Gang Territories #1");
+			return vars.TrySplit("GT #1");
 		}
 	}
 
 	var tags = vars.watchers["tags"];
 	if (tags.Current > tags.Old) {
-		//vars.DebugOutput("Split Tag");
-		//return true;
+		if (settings["EachTag"]) {
+			var tagName = "Tag "+tags.Current;
+			if (!vars.split.Contains(tagName)) {
+				vars.split.Add(tagName);
+				vars.DebugOutput("Split: "+tagName);
+				return true;
+			}	
+		}
+	}
+	if (tags.Current == 100 && tags.Old == 99) {
+		return vars.TrySplit("100 Tags");
 	}
 }
 
@@ -478,7 +578,9 @@ start {
 	 * place) could be an easy workaround.
 	 */
 	if (playingTime.Current > 3000 && started.Current > started.Old) {
-		vars.DebugOutput("New Game");
+		if (settings.StartEnabled) {
+			vars.DebugOutput("New Game");
+		}
 		return true;
 	}
 }
@@ -495,7 +597,9 @@ reset {
 	 * be 0.
 	 */
 	if (playingTime.Current > 500 && playingTime.Current < 1000) {
-		vars.DebugOutput("Reset");
+		if (settings.ResetEnabled) {
+			vars.DebugOutput("Reset");
+		}
 		return true;
 	}
 }
