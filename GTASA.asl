@@ -17,7 +17,6 @@ state("gta-sa") {
 }
 
 
-
 startup {
 	// All addresses defined here are relative to the module, so without the
 	// 0x400000 or whatever the module address is (different for more recent
@@ -249,6 +248,16 @@ startup {
 		}
 	};
 
+	Action<string, int> addMissions2 = (header, missions) => {
+		settings.Add(header+"Missions", true, header);
+		foreach (var item in vars.missions[missions]) {
+			var mission = item.Value;
+			if (missionPresent(mission)) {
+				settings.Add(mission, true, mission, header+"Missions");
+			}
+		}
+	};
+
 	// Function to add a single mission (checking if it's a mission)
 	Action<string, bool, string> addMissionCustom = (mission, defaultValue, label) => {
 		if (missionPresent(mission)) {
@@ -276,7 +285,24 @@ startup {
 	settings.Add("LV", true, "Las Venturas");
 	settings.Add("RTLS", true, "RTLS");
 
+	settings.CurrentDefaultParent = "LS";
+	addMissions2("Intro", 0x64A060);
+	addMissions2("Sweet", 0x64A070);
+	addMissions2("Big Smoke", 0x64A078);
+	addMissions2("Ryder",0x64A074);
+	addMissions2("C.R.A.S.H.", 0x64A080);
+	addMissions2("OG Loc", 0x64A07C);
+	addMissions2("Cesar", 0x64A084);
+	addMissions2("Final", 0x64A088);
+
+	settings.CurrentDefaultParent = "SF";
+	addMissions2("CJ (Garage)", 0x64A1D4);
+	addMissions2("Woozie", 0x64A1DC);
+	addMissions2("Syndicate", 0x64A1E4);
+	addMissions2("C.R.A.S.H. (SF)", 0x64A1E8);
+
 	//# Los Santos
+	/*
 	addMissions("LS", new List<string>() {
 		"Big Smoke", "Ryder", "Tagging up Turf", "Cleaning the Hood", "Drive-Thru", "Nines and AKs",
 		"OG Loc", "Running Dog", "Drive-By", "Sweet's Girl", "Cesar Vialpando", "High Stakes Lowrider",
@@ -284,7 +310,7 @@ startup {
 		"Wrong Side of the Tracks", "Just Business", "Doberman", "Gray Imports", "Home Invasion", "House Party",
 		"Catalyst", "Robbing Uncle Sam", "Los Sepulcros", "Reuniting the Families", "The Green Sabre"
 	});
-
+*/
 	//# Badlands
 	settings.CurrentDefaultParent = "BL";
 	addMission("Badlands");
@@ -301,11 +327,13 @@ startup {
 	});
 	
 	//# San Fierro
+	/*
 	addMissions("SF", new List<string>() {
 		"Wear Flowers in your Hair", "555 WE TIP", "Deconstruction", "Photo Opportunity", "Jizzy (Cutscene)",
 		"Jizzy", "T-Bone Mendez", "Mike Toreno", "Outrider", "Snail Trail", "Mountain Cloud Boys", "Ran Fa Li",
 		"Lure", "Amphibious Assault", "Pier 69", "Toreno's Last Flight", "The Da Nang Thang", "Yay Ka-Boom-Boom"
 	});
+	*/
 
 	//# Desert
 	addMissions("Desert", new List<string>() {
@@ -335,6 +363,7 @@ startup {
 
 
 	//## Side Missions
+	settings.CurrentDefaultParent = null;
 	settings.Add("Missions2", true, "Side Missions");
 
 	//# Side Mission headers
@@ -481,6 +510,7 @@ init {
 	// Add other values that aren't missions
 	vars.watchers.Add(new MemoryWatcher<int>(new DeepPointer(0x77CD98+offset, 0x530)) { Name = "pedStatus" });
 	vars.watchers.Add(new MemoryWatcher<int>(new DeepPointer(0x651698+offset)) { Name = "eotl" });
+	vars.watchers.Add(new MemoryWatcher<int>(new DeepPointer(0x64ED04+offset)) { Name = "intro_state" });
 
 	// This means loading from a save and such, not load screens (this doesn't work with Steam since I couldn't find the address for it)
 	vars.watchers.Add(new MemoryWatcher<byte>(new DeepPointer(0x7A67A5+offset)) { Name = "loading" });
@@ -520,9 +550,6 @@ init {
 	 * is also added to the list of already split splits. (Kappab)
 	 */
 	Func<string, bool> TrySplit = (splitId) => {
-		if (vars.blacklist.Contains(splitId)) {
-			return false;
-		}
 		if (!settings[splitId]) {
 			return false;
 		}
@@ -611,7 +638,7 @@ split {
 				if (type == "Tags")
 					max = 100;
 				if (value.Current == max && value.Old == max-1) {
-					return vars.TrySplit("All "+type);
+					return vars.TrySplit(type+"All");
 				}
 			}
 			if (settings[type+"Each"]) {
@@ -682,23 +709,21 @@ start {
 	var menu = vars.watchers["menu"];
 	var playingTime = vars.watchers["playingTime"];
 	var started = vars.watchers["started"];
+	var intro_state = vars.watchers["intro_state"];
 	//print(started.Current.ToString()+" "+playingTime.Current.ToString()+" "+menu.Current);
 	if (menu.Current != 6) {
 		// Starting a New Game usually sets the menu to 6, but doesn't really seem to work with Steam
 		//return false;
 		//vars.DebugOutput("No start");
 	}
-	if (playingTime.Current > 30000) {
-		return false;
-	}
 
 	/*
-	 * The value can either switch from 1->2 or from 0->1 when the timer should be
-	 * started, depending on whether the game was started fresh or not. Simply checking
-	 * for an increase after 3 seconds (where the first increase already would have taken
-	 * place) could be an easy workaround.
+	 * intro_state is a variable only used in the intro mission, changing from
+	 * 0 to 1 when the cutscene is skipped. It always gets set to other values
+	 * during the intro cutscene, so the timer will only start when you skip the
+	 * cutscene within the first 90s or so.
 	 */
-	if (playingTime.Current > 3000 && started.Current > started.Old) {
+	if (intro_state.Current == 1 && intro_state.Old == 0) {
 		if (settings.StartEnabled) {
 			// Only output when actually starting timer
 			vars.DebugOutput("New Game");
@@ -706,6 +731,7 @@ start {
 		return true;
 	}
 }
+
 
 reset {
 	var playingTime = vars.watchers["playingTime"];
