@@ -1,4 +1,12 @@
-state("gta_sa") {
+
+/*
+ * All addresses defined in this script are relative to the module, so without
+ * the 0x400000 or whatever the module address is (different for more recent
+ * Steam version).
+ */
+
+state("gta_sa")
+{
 	int version_100_EU : 0x4245BC;
 	int version_100_US : 0x42457C;
 	int version_101_EU : 0x42533C;
@@ -7,7 +15,9 @@ state("gta_sa") {
 	int version_101_Steam : 0x45DEDA;
 }
 
-state("gta-sa") {
+// Detect .exe of the Steam version (notice the "-" instead of "_")
+state("gta-sa")
+{
 	int version_100_EU : 0x4245BC;
 	int version_100_US : 0x42457C;
 	int version_101_EU : 0x42533C;
@@ -16,17 +26,22 @@ state("gta-sa") {
 	int version_101_Steam : 0x45DEDA;
 }
 
+startup
+{
+	//=============================================================================
+	// Memory Addresses
+	//=============================================================================
+	// There are more memory addresses defined in `init` in the "Version Detection"
+	// and "Memory Watcher" sections.
 
-startup {
-	// All addresses defined here are relative to the module, so without the
-	// 0x400000 or whatever the module address is (different for more recent
-	// Steam version).
-
-
-	// First Address: 1.0
-	// Second Address: Steam
-	//
-	// Collectible type acts as setting key, so don't change it
+	// Collectibles
+	//=============
+	/*
+	 * First Address: 1.0
+	 * Second Address: Steam
+	 * 
+	 * Collectible type acts as setting ID, so don't change it.
+	 */
 	vars.collectibles = new Dictionary<string,List<int>> {
 		{"Photos",	new List<int> {0x7791BC, 0x80C3E4}},
 		{"Tags",	new List<int> {0x69AD74, 0x71258C}},
@@ -34,12 +49,16 @@ startup {
 		{"Horseshoes", 	new List<int> {0x7791E4, 0x80C40C}}
 	};
 
+	// Missions
+	//=========
 	/*
-	 * Memory address and the associated values and missions. Each
-	 * mission is only split once from the start of the timer.
+	 * Memory addresses and the associated values and missions.
 	 *
 	 * Commenting out missions may interfere with custom splits that
-	 * refer to their status.
+	 * refer to their status (MissionPassed-function).
+	 *
+	 * Mission names defined here also act as setting IDs, so don't change
+	 * them.
 	 */
 	vars.missions = new Dictionary<int, Dictionary<int, string>> {
 		{0x64A060, new Dictionary<int, string> { // $INTRO_TOTAL_PASSED_MISSIONS
@@ -155,9 +174,6 @@ startup {
 			{2, "Supply Lines..."},
 			{3, "New Model Army"}
 		}},
-		{0x649AB8, new Dictionary<int, string> { // $MISSION_BACK_TO_SCHOOL_PASSED
-			{1, "Driving School Passed"}
-		}},
 		{0x64A1E0, new Dictionary<int, string> { // $STEAL_TOTAL_PASSED_MISSIONS
 			{1, "Zeroing In"},
 			{2, "Test Drive"},
@@ -207,10 +223,32 @@ startup {
 			{4, "End of the Line Part 2"},
 			{5, "End of the Line Part 3"} // After credits
 		}},
+		{0x649AB8, new Dictionary<int, string> { // $MISSION_BACK_TO_SCHOOL_PASSED
+			{1, "Driving School Passed"}
+		}},
+		{0x64B824, new Dictionary<int, string> { // $MISSION_BOAT_SCHOOL_PASSED
+			{1, "Boat School Passed"}
+		}},
+		{0x64BBC4, new Dictionary<int, string> { // $MISSION_DRIVING_SCHOOL_PASSED (actually Bike School)
+			{1, "Bike School Passed"}
+		}},
+		{0x6518DC, new Dictionary<int, string> { // $TRUCKING_TOTAL_PASSED_MISSIONS
+			{1, "Trucking 1"},
+			{2, "Trucking 2"},
+			{3, "Trucking 3"},
+			{4, "Trucking 4"},
+			{5, "Trucking 5"},
+			{6, "Trucking 6"},
+			{7, "Trucking 7"},
+			{8, "Trucking 8"}
+		}},
 	};
 
 
+	//=============================================================================
 	// Utility Functions
+	//=============================================================================
+
 	/*
 	 * Easier debug output.
 	 */
@@ -220,17 +258,23 @@ startup {
 	vars.DebugOutput = DebugOutput;
 
 
-	//##### Settings #####
+	//=============================================================================
+	// Settings
+	//=============================================================================
 	// Settings are mostly added manually (not directly from the mission definition)
 	// so they can be manually sorted (the usual mission order).
 
-	//## Setting Functions
+	// Setting Functions
+	//==================
 
-	// Check if the given string is the name of a mission
+	// Check if the given string is the name of a mission as defined in vars.missions
 	Func<string, bool> missionPresent = m => {
-		foreach (var item in vars.missions) {
-			foreach (var item2 in item.Value) {
-				if (item2.Value == m) {
+		foreach (var item in vars.missions)
+		{
+			foreach (var item2 in item.Value)
+			{
+				if (item2.Value == m)
+				{
 					return true;
 				}
 			}
@@ -272,11 +316,11 @@ startup {
 		}
 	};
 
-
-	//## Main Missions
+	// Main Missions
+	//==============
 	settings.Add("Missions", true, "Main Missions (any%)");
+	settings.SetToolTip("Missions", "Main Missions and other splits that commonly occur in the any% route");
 
-	//# Main Mission headers
 	settings.CurrentDefaultParent = "Missions";
 	settings.Add("LS", true, "Los Santos");
 	settings.Add("BL", true, "Badlands");
@@ -284,134 +328,139 @@ startup {
 	settings.Add("Desert", true);
 	settings.Add("LV", true, "Las Venturas");
 	settings.Add("RTLS", true, "RTLS");
-
-	settings.CurrentDefaultParent = "LS";
-	addMissions2("Intro", 0x64A060);
-	addMissions2("Sweet", 0x64A070);
-	addMissions2("Big Smoke", 0x64A078);
-	addMissions2("Ryder",0x64A074);
-	addMissions2("C.R.A.S.H.", 0x64A080);
-	addMissions2("OG Loc", 0x64A07C);
-	addMissions2("Cesar", 0x64A084);
-	addMissions2("Final", 0x64A088);
-
-	settings.CurrentDefaultParent = "SF";
-	addMissions2("CJ (Garage)", 0x64A1D4);
-	addMissions2("Woozie", 0x64A1DC);
-	addMissions2("Syndicate", 0x64A1E4);
-	addMissions2("C.R.A.S.H. (SF)", 0x64A1E8);
-
-	//# Los Santos
-	/*
+	settings.CurrentDefaultParent = null;
+	
+	// Los Santos
+	//-----------
 	addMissions("LS", new List<string>() {
-		"Big Smoke", "Ryder", "Tagging up Turf", "Cleaning the Hood", "Drive-Thru", "Nines and AKs",
-		"OG Loc", "Running Dog", "Drive-By", "Sweet's Girl", "Cesar Vialpando", "High Stakes Lowrider",
-		"Madd Dogg's Rhymes", "Management Issues", "House Party (Cutscene)", "Burning Desire",
-		"Wrong Side of the Tracks", "Just Business", "Doberman", "Gray Imports", "Home Invasion", "House Party",
-		"Catalyst", "Robbing Uncle Sam", "Los Sepulcros", "Reuniting the Families", "The Green Sabre"
+		"Big Smoke", "Ryder", "Tagging up Turf", "Cleaning the Hood", "Drive-Thru",
+		"Nines and AKs", "OG Loc", "Life's a Beach", "Running Dog", "Drive-By",
+		"Sweet's Girl", "Cesar Vialpando", "High Stakes Lowrider", "Madd Dogg's Rhymes",
+		"Management Issues", "House Party (Cutscene)", "Burning Desire",
+		"Wrong Side of the Tracks", "Just Business", "Doberman", "Gray Imports",
+		"Home Invasion", "House Party", "Catalyst", "Robbing Uncle Sam", "Los Sepulcros",
+		"Reuniting the Families", "The Green Sabre"
 	});
-*/
-	//# Badlands
+
+	// Badlands
+	//---------
 	settings.CurrentDefaultParent = "BL";
 	addMission("Badlands");
-	settings.Add("Bustedwarp BL #1", true, "Bustedwarp Badlands #1");
+	settings.Add("Bustedwarp BL #1", true, "[Bustedwarp Badlands #1]");
 	addMission("Tanker Commander");
-	settings.Add("Deathwarp BL #1", true, "Deathwarp Badlands #1");
+	settings.Add("Deathwarp BL #1", true, "[Deathwarp Badlands #1]");
 	addMission("Body Harvest");
-	settings.Add("Deathwarp BL #2", true, "Deathwarp Badlands #2");
+	settings.Add("Deathwarp BL #2", true, "[Deathwarp Badlands #2]");
 	addMission("King in Exile");
-	settings.Add("Bustedwarp BL #2", true, "Bustedwarp Badlands #2");
+	settings.Add("Bustedwarp BL #2", true, "[Bustedwarp Badlands #2]");
 	addMissions("BL", new List<string>() {
-		"Small Town Bank", "Local Liquor Store",
-		"Against All Odds", "Are You Going To San Fierro?"
+		"Small Town Bank", "Local Liquor Store", "Against All Odds", "Wu Zi Mu",
+		"Farewell, My Love", "Are You Going To San Fierro?"
 	});
-	
-	//# San Fierro
-	/*
+	settings.CurrentDefaultParent = null;
+
+	// San Fierro
+	//-----------
 	addMissions("SF", new List<string>() {
-		"Wear Flowers in your Hair", "555 WE TIP", "Deconstruction", "Photo Opportunity", "Jizzy (Cutscene)",
-		"Jizzy", "T-Bone Mendez", "Mike Toreno", "Outrider", "Snail Trail", "Mountain Cloud Boys", "Ran Fa Li",
-		"Lure", "Amphibious Assault", "Pier 69", "Toreno's Last Flight", "The Da Nang Thang", "Yay Ka-Boom-Boom"
+		"Wear Flowers in your Hair", "555 WE TIP", "Deconstruction", "Photo Opportunity",
+		"Jizzy (Cutscene)", "Jizzy", "T-Bone Mendez", "Mike Toreno", "Outrider",
+		"Snail Trail", "Mountain Cloud Boys", "Ran Fa Li", "Lure", "Ice Cold Killa",
+		"Amphibious Assault", "Pier 69", "Toreno's Last Flight", "The Da Nang Thang",
+		"Yay Ka-Boom-Boom"
 	});
-	*/
 
-	//# Desert
+
+	// Desert
+	//-------
 	addMissions("Desert", new List<string>() {
-		"Monster", "Highjack", "Interdiction", "Verdant Meadows", "Learning to Fly", "N.O.E."
+		"Monster", "Highjack", "Interdiction", "Verdant Meadows", "Learning to Fly"
 	});
 
-	//# Las Venturas
+	// Las Venturas
+	//-------------
 	addMissions("LV", new List<string>() {
-		"Fender Ketchup", "Explosive Situation", "You've Had Your Chips", "Don Peyote", "Intensive Care",
-		"The Meat Business", "Fish in a Barrel", "Madd Dogg", "Misappropriation", "Freefall", "Stowaway",
-		"Black Project", "High Noon", "Green Goo", "Saint Mark's Bistro"
+		"N.O.E.", "Freefall", "Fender Ketchup", "Explosive Situation", "You've Had Your Chips",
+		"Don Peyote", "Intensive Care", "The Meat Business", "Fish in a Barrel", "Madd Dogg",
+		"Misappropriation", "Stowaway", "Black Project", "High Noon", "Green Goo",
+		"Saint Mark's Bistro"
 	});
 
-	//# RTLS
-	addMissions("RTLS", new List<string>() {
-		"A Home in the Hills", "Vertical Bird", "Home Coming", "Beat Down on B Dup", "Grove 4 Life",
-		"Cut Throat Business", "Riot", "Los Desperados"
-	});
+	// Return to Los Santos
+	//---------------------
 	settings.CurrentDefaultParent = "RTLS";
+
+	addMissions("RTLS", new List<string>() {
+		"A Home in the Hills", "Vertical Bird", "Home Coming", "Beat Down on B Dup",
+		"Grove 4 Life", "Cut Throat Business", "Riot", "Los Desperados"
+	});
 	addMissionCustom("End of the Line Part 1", false, "End of the Line Part 1 (after killing Big Smoke)");
-	addMissionCustom("End of the Line Part 2", false, "End of the Line Part 2 (start of chase)");
+	addMissionCustom("End of the Line Part 2", false, "End of the Line Part 2 (start of Chase)");
 	addMissionCustom("End of the Line Part 3", false, "End of the Line Part 3 (after Credits)");
 
-	settings.Add("GT #1", false, "Gang Territories Part 1 (at starting of Grove 4 Life");
-	settings.Add("GT #2", false, "Gang Territories Part 2 (at starting of Cut Throat Business");
+	settings.Add("GT #1", false, "Gang Territories #1 (at starting of Grove 4 Life");
+	settings.Add("GT #2", false, "Gang Territories #2 (at starting of Cut Throat Business");
 	settings.Add("any%", true, "End of any% (start of Firetruck Bridge Cutscene)");
 
-
-	//## Side Missions
 	settings.CurrentDefaultParent = null;
+
+	// Side Missions
+	//==============
 	settings.Add("Missions2", true, "Side Missions");
-
-	//# Side Mission headers
 	settings.CurrentDefaultParent = "Missions2";
-	settings.Add("Zero");
-	settings.Add("Wang Cars");
-	settings.Add("Heist");
-	settings.Add("Schools");
 
-	addMissions("Zero", new List<string>() {
-		"Air Raid", "Supply Lines...", "New Model Army"
-	});
-		
-	addMissions("Wang Cars", new List<string>() {
-		"Zeroing In", "Test Drive", "Customs Fast Track", "Puncture Wounds"
-	});
-	addMissions("Heist", new List<string>() {
-		"Architectural Espionage", "Key to her Heart", "Dam and Blast", "Cop Wheels", "Up, Up and Away!",
-		"Breaking the Bank at Caligula's" 
-	});
+	addMissions2("Zero", 0x64A1D8);
+	addMissions2("Wang Cars", 0x64A1E0);
+	addMissions2("Heist", 0x64A2C0);
+	settings.Add("Schools");
 	addMissions("Schools", new List<string>() {
-		"Driving School Passed"
+		"Driving School Passed", "Boat School Passed", "Bike School Passed"
 	});
+	addMissions2("Trucking", 0x6518DC);
 
 	settings.CurrentDefaultParent = null;
 	
-	//## Collectibles
-	settings.Add("Collectibles", true, "Collectibles");
+	// Collectibles
+	//=============
+	settings.Add("Collectibles", false, "Collectibles");
 	settings.CurrentDefaultParent = "Collectibles";
-	foreach (var item in vars.collectibles) {
+	foreach (var item in vars.collectibles)
+	{
 		settings.Add(item.Key+"All", false, item.Key+" (All Done)");
 		settings.Add(item.Key+"Each", false, item.Key+" (Each)");
 	}
+	settings.CurrentDefaultParent = null;
 
+	// Other Settings
+	//===============
+	settings.Add("startOnSaveLoad", false, "Start timer when loading save (experimental)");
+	settings.SetToolTip("startOnSaveLoad",
+		@"This may start the timer too early on New Game, however if you have Reset enabled, 
+ it should reset again before the desired start.");
 
-	//### Other Stuff ###
+	//=============================================================================
+	// Other Stuff
+	//=============================================================================
 	refreshRate = 30;
 }
 
-init {
+init
+{
+	//=============================================================================
+	// Version Detection
+	//=============================================================================
+	vars.enabled = true;
 	var versionValue = 38079;
 	int versionOffset = 0;
 
-	int playingTimeAddr = 0x77CB84;
-	int startAddr = 0x77CEDC;
-	int menuAddr = 0x7A68A5;
-	int threadAddr = 0x68B42C;
+	int playingTimeAddr = 	0x77CB84;
+	int startAddr =		0x77CEDC;
+	int menuAddr =		0x7A68A5;
+	int threadAddr =	0x68B42C;
+	int loadingAddr =	0x7A67A5;
+	int playerPedAddr =	0x77CD98;
 
+	// Detect Version
+	//===============
 	// Look for both the value in the memory and the module size to determine the
 	// version.
 	//
@@ -457,32 +506,46 @@ init {
 		versionOffset = 0x75770;
 		version = "1.01 Steam";
 	}
-	if (moduleSize == 9981952) {
+	if (moduleSize == 9981952)
+	{
 		// More recent Steam Version (no version in menu), this is referred to
 		// as just "Steam"
 		versionOffset = 0x77970;
 		version = "Steam";
 		playingTimeAddr = 0x80FD74;
-		startAddr = 0x810214;
-		menuAddr = 0x5409BC;
-		threadAddr = 0x702D98;
+		startAddr =	0x810214;
+		menuAddr =	0x5409BC;
+		threadAddr =	0x702D98;
+		loadingAddr =	0x833995;
+		playerPedAddr =	0x8100D0;
 	}
-	
-	// Extra variable because versionOffset was different from offset (keep it
+
+	// Version detected
+	//=================
+
+	if (version == "")
+	{
+		version = "<unknown>";
+		vars.enabled = false;
+	}
+
+	// Extra variable because versionOffset was different from offset before (keep it
 	// like this just in case)
 	int offset = versionOffset;
 
-	// Apply offsets, except for Steam
+	// Apply offset, except for Steam, since that version has completely separate addresses
 	if (version != "Steam") {
-		// Only apply offset if not more recent Steam version, since that version has completely separate addresses
 		playingTimeAddr += offset;
 		startAddr += offset;
 		menuAddr += offset;
 		threadAddr += offset;
+		loadingAddr += offset;
+		playerPedAddr += offset;
 	}
 	
-
-	//## State keeping
+	//=============================================================================
+	// State keeping
+	//=============================================================================
 
 	// Already split splits during this attempt (until timer reset)
 	vars.split = new List<string>();
@@ -494,8 +557,9 @@ init {
 	// and such, not load screens)
 	vars.lastLoad = 0;
 
-
-	//## Memory watcher
+	//=============================================================================
+	// Memory Watcher
+	//=============================================================================
 
 	// Add missions as watched memory values
 	vars.watchers = new MemoryWatcherList();
@@ -505,17 +569,22 @@ init {
 				new DeepPointer(item.Key+offset)
 			) { Name = item.Key.ToString() }
 		);
+
+		// Check if setting for each mission exists (this will output a message to debug if not)
+		foreach (var m in item.Value) {
+			if (settings[m.Value]) { }
+		}
 	}
 	
 	// Add other values that aren't missions
-	vars.watchers.Add(new MemoryWatcher<int>(new DeepPointer(0x77CD98+offset, 0x530)) { Name = "pedStatus" });
 	vars.watchers.Add(new MemoryWatcher<int>(new DeepPointer(0x651698+offset)) { Name = "eotl" });
 	vars.watchers.Add(new MemoryWatcher<int>(new DeepPointer(0x64ED04+offset)) { Name = "intro_state" });
 
 	// This means loading from a save and such, not load screens (this doesn't work with Steam since I couldn't find the address for it)
-	vars.watchers.Add(new MemoryWatcher<byte>(new DeepPointer(0x7A67A5+offset)) { Name = "loading" });
+	vars.watchers.Add(new MemoryWatcher<bool>(new DeepPointer(loadingAddr)) { Name = "loading" });
 
 	// Values that have a different address defined for the Steam version
+	vars.watchers.Add(new MemoryWatcher<int>(new DeepPointer(playerPedAddr, 0x530)) { Name = "pedStatus" });
 	vars.watchers.Add(new MemoryWatcher<int>(new DeepPointer(playingTimeAddr)) { Name = "playingTime" });
 	vars.watchers.Add(new MemoryWatcher<byte>(new DeepPointer(menuAddr)) { Name = "menu" });
 	vars.watchers.Add(new MemoryWatcher<byte>(new DeepPointer(startAddr)) { Name = "started" });
@@ -538,8 +607,9 @@ init {
 
 	vars.watchers.UpdateAll(game);
 
-	
-	//## Utility functions
+	//=============================================================================	
+	// Utility functions
+	//=============================================================================
 
 	/*
 	 * Check if splitting should occur based on whether this split
@@ -583,27 +653,40 @@ init {
 		return false;
 	};
 	vars.Passed = MissionPassed;
-
-	// Test
-	//print(MissionPassed("Tanker Commander").ToString());
 }
 
-update {
+update
+{
+	//=============================================================================
+	// General Housekeeping
+	//=============================================================================
+	// Disable all timer control actions if version was not detected
+	if (!vars.enabled)
+		return false;
+
 	// Update always, to prevent splitting after loading (if possible, doesn't seem to be 100% reliable)
 	vars.watchers.UpdateAll(game);
 
 	// Clear list of already executed splits if timer is reset
-	if (timer.CurrentPhase != vars.PrevPhase) {
-		if (timer.CurrentPhase == TimerPhase.NotRunning) {
+	if (timer.CurrentPhase != vars.PrevPhase)
+	{
+		if (timer.CurrentPhase == TimerPhase.NotRunning)
+		{
 			vars.split.Clear();
 			vars.DebugOutput("Cleared list of already executed splits");
 		}
 		vars.PrevPhase = timer.CurrentPhase;
 	}
+
+	//print(vars.watchers["pedStatus"].Current.ToString());
 }
 
-split {
-	if (vars.watchers["loading"].Current == 1) {
+split
+{
+	//=============================================================================
+	// Split prevention
+	//=============================================================================
+	if (vars.watchers["loading"].Current) {
 		vars.DebugOutput("Loading");
 		vars.lastLoad = Environment.TickCount;
 		return false;
@@ -616,12 +699,16 @@ split {
 		return false;
 	}
 
+	//=============================================================================
+	// Splits
+	//=============================================================================
+
 	// Split missions
+	//===============
 	foreach (var item in vars.missions) {
-		int currentValue = vars.watchers[item.Key.ToString()].Current;
-		int oldValue = vars.watchers[item.Key.ToString()].Old;
-		if (currentValue > oldValue && item.Value.ContainsKey(currentValue)) {
-			string splitId = item.Value[currentValue];
+		var value = vars.watchers[item.Key.ToString()];
+		if (value.Current > value.Old && item.Value.ContainsKey(value.Current)) {
+			string splitId = item.Value[value.Current];
 			if (vars.TrySplit(splitId)) {
 				return true;
 			}
@@ -629,22 +716,26 @@ split {
 	}
 
 	// Split collectibles
+	//===================
 	foreach (var item in vars.collectibles) {
 		var value = vars.watchers[item.Key.ToString()];
 		if (value.Current > value.Old) {
 			var type = item.Key;
-			if (settings[type+"All"]) {
+			if (settings[type+"All"])
+			{
 				int max = 50;
 				if (type == "Tags")
 					max = 100;
-				if (value.Current == max && value.Old == max-1) {
+				if (value.Current == max && value.Old == max-1)
+				{
 					return vars.TrySplit(type+"All");
 				}
 			}
 			if (settings[type+"Each"]) {
 				// Need to keep track of already split splits seperately from the setting
 				var splitName = type+" "+value.Current;
-				if (!vars.split.Contains(splitName)) {
+				if (!vars.split.Contains(splitName))
+				{
 					vars.split.Add(splitName);
 					vars.DebugOutput("Split: "+splitName);
 					return true;
@@ -654,6 +745,7 @@ split {
 	}
 
 	// Busted/Deathwarp
+	//=================
 	var pedStatus = vars.watchers["pedStatus"];
 	if (pedStatus.Current != pedStatus.Old) {
 		if (pedStatus.Current == 63) // Busted
@@ -681,8 +773,10 @@ split {
 	}
 
 	// End of any%
+	//============
 	var eotl = vars.watchers["eotl"];
-	if (eotl.Current == 3 && eotl.Old == 2) {
+	if (eotl.Current == 3 && eotl.Old == 2)
+	{
 		// This check is probably not necessary since the variable $8014 seems to be
 		// only used in EotL Part 3, but just to be safe.
 		if (vars.Passed("End of the Line Part 2"))
@@ -692,8 +786,10 @@ split {
 	}
 
 	// Starting a certain mission
+	//===========================
 	var thread = vars.watchers["thread"];
-	if (thread.Current != thread.Old) {
+	if (thread.Current != thread.Old)
+	{
 		if (thread.Current == "manson5") // Cut Throat Business
 		{
 			return vars.TrySplit("GT #2");
@@ -705,13 +801,17 @@ split {
 	}
 }
 
-start {
+start
+{
 	var menu = vars.watchers["menu"];
 	var playingTime = vars.watchers["playingTime"];
 	var started = vars.watchers["started"];
 	var intro_state = vars.watchers["intro_state"];
+	var loading = vars.watchers["loading"];
+
 	//print(started.Current.ToString()+" "+playingTime.Current.ToString()+" "+menu.Current);
-	if (menu.Current != 6) {
+	if (menu.Current != 6)
+	{
 		// Starting a New Game usually sets the menu to 6, but doesn't really seem to work with Steam
 		//return false;
 		//vars.DebugOutput("No start");
@@ -723,17 +823,24 @@ start {
 	 * during the intro cutscene, so the timer will only start when you skip the
 	 * cutscene within the first 90s or so.
 	 */
-	if (intro_state.Current == 1 && intro_state.Old == 0) {
-		if (settings.StartEnabled) {
+	if (intro_state.Current == 1 && intro_state.Old == 0)
+	{
+		if (settings.StartEnabled)
+		{
 			// Only output when actually starting timer
 			vars.DebugOutput("New Game");
 		}
 		return true;
 	}
+	if (settings["startOnSaveLoad"] && !loading.Current && loading.Old)
+	{
+		return true;
+	}
 }
 
 
-reset {
+reset
+{
 	var playingTime = vars.watchers["playingTime"];
 	/*
 	 * Check if playing time is in the range where the New Game is still starting (before
@@ -744,8 +851,10 @@ reset {
 	 * may be 0 for a bit. In addition, when starting the game, the value may not actually
 	 * be 0.
 	 */
-	if (playingTime.Current > 500 && playingTime.Current < 1000) {
-		if (settings.ResetEnabled) {
+	if (playingTime.Current > 500 && playingTime.Current < 1000)
+	{
+		if (settings.ResetEnabled)
+		{
 			// Only output when actually resetting
 			vars.DebugOutput("Reset");
 		}
