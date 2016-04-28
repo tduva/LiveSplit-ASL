@@ -13,6 +13,10 @@ Missions that can't be split in a manner consistent to the others are the follow
 
 There are a few additional possible splits available (usually Cinematics) which aren't enabled by default.
 
+## Usage
+
+To use the Autosplitter simply set the game in the Splits Editor as `Driver: Parallel Lines` and click on `Activate`.
+
 ## Technical Notes
 DriverParallelLines.exe+2E72BC changes to the current mission on start of the mission, as well as the Cutscenes. Some possible values are:
 

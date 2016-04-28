@@ -1,7 +1,6 @@
 state ("DriverParallelLines")
 {
 	string20 mission : 0x2E72BC;
-	int counter : 0x31CE90;
 }
 
 startup
