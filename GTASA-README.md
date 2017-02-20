@@ -7,7 +7,7 @@ Since this is still a Work in Progress, not everything may work correctly yet. Y
 ## Features
 
 * Auto start (on skipping the first cutscene)
-* Auto reset (starting a New Game, during the `Francis INTL. Airport` text, if you start a New Game by accident you have a few seconds to ESC before that)
+* Auto reset (on skipping the first cutscene, if you start a New Game by accident you have a few seconds to ESC before that to prevent a reset)
 * Autosplit available for:
   * All Main Story Missions (any%)
   * Most Sidemissions (All Missions/100%)
@@ -32,6 +32,10 @@ Since this is still a Work in Progress, not everything may work correctly yet. Y
 * Check the Autosplitter settings to check which version it detected (while the game is running)
   - If it says `<unknown>` it couldn't detect your game version and the Autosplitter is disabled
 
+### Changelog
+
+See the [commits](https://github.com/tduva/LiveSplit-ASL/commits/master/GTASA.asl) for updates to this script.
+
 ## Usage
 
 Simply go into the Splits Editor, set `Grand Theft Auto: San Andreas` as game and activate the Autosplitter by clicking on `Activate`.
@@ -54,7 +58,7 @@ The settings are stored in your Splits file if you activated the Autosplitter in
 
 #### Duping
 
-If you do duping, make sure to deactivate the split for the mission that you dupe, so that it splits for the mission that you skip, since it will end up on that value.
+If you do duping, make sure to deactivate the split for the mission that you dupe, so that it splits for the mission that you skip, since it will end up on that value. By default the `Double-Split Prevention` setting will prevent most (if not all) dupes from splitting twice, although since there can be a few seconds between duped instances completing you can end up with slighting different times depending on whether you deactivate the split for the duped mission or not.
 
 ### Add Autosplitter to Layout
 
