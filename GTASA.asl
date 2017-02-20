@@ -412,6 +412,22 @@ startup
 	};
 	vars.DebugOutput = DebugOutput;
 
+	//=============================================================================
+	// State keeping
+	//=============================================================================
+
+	// Already split splits during this attempt (until timer reset)
+	vars.split = new List<string>();
+
+	// Track timer phase
+	vars.PrevPhase = null;
+
+	// Timestamp when the last load occured (load means loading from a save
+	// and such, not load screens)
+	vars.lastLoad = 0;
+
+	// Timestamp when the last split was executed (to prevent double-splits)
+	vars.lastSplit = 0;
 
 	//=============================================================================
 	// Settings
@@ -705,6 +721,10 @@ startup
 	settings.SetToolTip("startOnSaveLoad",
 		@"This may start the timer too early on New Game, however if you have Reset enabled, 
  it should reset again before the desired start.");
+	settings.Add("doubleSplitPrevention", true, "Double-Split Prevention");
+	settings.SetToolTip("doubleSplitPrevention",
+@"Impose cooldown of 2.5s between auto-splits.
+This may not work for all types of splits.");
 
 
 	//=============================================================================
@@ -811,19 +831,7 @@ init
 		playerPedAddr += offset;
 	}
 	
-	//=============================================================================
-	// State keeping
-	//=============================================================================
-
-	// Already split splits during this attempt (until timer reset)
-	vars.split = new List<string>();
-
-	// Track timer phase
-	vars.PrevPhase = null;
-
-	// Timestamp when the last load occured (load means loading from a save
-	// and such, not load screens)
-	vars.lastLoad = 0;
+	
 
 	//=============================================================================
 	// Memory Watcher
@@ -916,7 +924,7 @@ init
 	 * blacklist.
 	 * 
 	 * If this returns true (the split should occur), the split
-	 * is also added to the list of already split splits. (Kappab)
+	 * is also added to the list of already split splits. (Kappa b)
 	 */
 	Func<string, bool> TrySplit = (splitId) => {
 		if (!settings[splitId]) {
@@ -924,8 +932,19 @@ init
 		}
 		if (!vars.split.Contains(splitId)) {
 			vars.split.Add(splitId);
-			vars.DebugOutput("Split: "+splitId);
-			return true;
+			/*
+			 * Double split prevention (mostly for duping). This is set to 2.5s so that dupes should
+			 * (hopefully) not split spice, whereas close-on splits like the Deathwarp to Angel Pine
+			 * after Body Harvest still do get split.
+			 */
+			if (!settings["doubleSplitPrevention"] || Environment.TickCount - vars.lastSplit > 2500) {
+				vars.DebugOutput("Split: "+splitId);
+				vars.lastSplit = Environment.TickCount;
+				return true;
+			}
+			else {
+				vars.DebugOutput("Split Prevented (Cooldown): "+splitId);
+			}
 		}
 		return false;
 	};
@@ -1221,7 +1240,7 @@ start
 		if (settings.StartEnabled)
 		{
 			// Only output when actually starting timer
-			vars.DebugOutput("New Game");
+			vars.DebugOutput("New Game"+playingTime.Current);
 		}
 		return true;
 	}
