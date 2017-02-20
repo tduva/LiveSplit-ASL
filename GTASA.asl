@@ -936,6 +936,9 @@ init
 			 * Double split prevention (mostly for duping). This is set to 2.5s so that dupes should
 			 * (hopefully) not split spice, whereas close-on splits like the Deathwarp to Angel Pine
 			 * after Body Harvest still do get split.
+			 *
+			 * Make sure to always add this to the already executed splits, so that cooldown-prevented
+			 * splits are not split if a savegame is loaded and the dupe done again.
 			 */
 			if (!settings["doubleSplitPrevention"] || Environment.TickCount - vars.lastSplit > 2500) {
 				vars.DebugOutput("Split: "+splitId);
@@ -1226,24 +1229,29 @@ start
 
 	// New Game
 	//=========
-	// intro_state is a variable only used in the intro mission, changing from
-	// 0 to 1 when the cutscene is skipped. It gets set to other values during the
-	// intro cutscene, so the timer will only start when you skip the cutscene
-	// within the first 90s or so.
-	//
-	// Since the value seems to stay at 1 until after, but not sometime later in
-	// the game, loading a Save can sometimes trigger New Game, so also check if
-	// playingTime is low enough (60s).
-	//
+	/*
+	 * intro_state is a variable only used in the intro mission, changing from
+	 * 0 to 1 when the cutscene is skipped. It gets set to other values during the
+	 * intro cutscene, so the timer will only start when you skip the cutscene
+	 * within the first 90s or so.
+	 *
+	 * Since the value seems to stay at 1 until after, but not sometime later in
+	 * the game, loading a Save can sometimes trigger New Game, so also check if
+	 * playingTime is low enough (60s).
+	 *
+	 * In the commonly used decompiled main.scm, this should be the variable $5353.
+	 */
 	if (intro_state.Current == 1 && intro_state.Old == 0 && playingTime.Current < 60*1000)
 	{
 		if (settings.StartEnabled)
 		{
-			// Only output when actually starting timer
+			// Only output when actually starting timer (the return value of this method
+			// is only respected by LiveSplit when the setting is actually enabled)
 			vars.DebugOutput("New Game"+playingTime.Current);
 		}
 		return true;
 	}
+	
 
 	// Loaded Save
 	//============
@@ -1268,23 +1276,28 @@ reset
 	//=============================================================================
 
 	var playingTime = vars.watchers["playingTime"];
+	var intro_state = vars.watchers["intro_state"];
 	/*
-	 * Check if playing time is in the range where the New Game is still starting (before
-	 * intro cutscene) but the timer hasn't started yet. This ensures that the timer is
-	 * only reset at the very start of the game and not when loading a save or mid-game.
-	 * 
-	 * Trying to check playingTime == 0 can be dangerous because when loading a save values
-	 * may be 0 for a bit. In addition, when starting the game, the value may not actually
-	 * be 0.
+	 * Previously the playingTime was used to reset the timer, although it seems like for
+	 * different people the game started at different playingTime values (probably depending
+	 * on game version and loading times), so sometimes the timer would be reset after the
+	 * game started.
 	 *
-	 * Waiting until just before the first cutscene gives the runner some time to ESC and
-	 * prevent the reset if he accidentally started a New Game during a run.
+	 * This is now using the same value changes as for starting the timer, so the time
+	 * should be reset (if running) and started in the same update iteration. Still check
+	 * a reasonable playingTime interval though, so that there is no chance of the timer
+	 * being reset midgame.
+	 *
+	 * With this method, the timer resets even later than before, making accidental resets
+	 * when e.g. starting a new game instead of loading a save even less a problem (because
+	 * you have enough time to ESC before the timer is reset).
 	 */
-	if (playingTime.Current > 4000 && playingTime.Current < 4100)
+	if (intro_state.Current == 1 && intro_state.Old == 0 && playingTime.Current > 2000 && playingTime.Current < 60*1000)
 	{
 		if (settings.ResetEnabled)
 		{
-			// Only output when actually resetting
+			// Only output when actually resetting (the return value of this method
+			// is only respected by LiveSplit when the setting is actually enabled)
 			vars.DebugOutput("Reset");
 		}
 		return true;
