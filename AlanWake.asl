@@ -1,9 +1,39 @@
+/*
+ * The state section is required for every script. It defines which process to
+ * connect to (without the .exe).
+ *
+ * Optionally, you can also define one or several states that should be read
+ * from the game's memory, which you can then access in other places in the
+ * script. This is commonly the way to go for simple scripts.
+ */
 state("AlanWake")
 {
+	/*
+	 * This reads a simple boolean (bool) value from the given address and stores
+	 * it under the name "isLoading".
+	 */
 	bool isLoading : 0x0036BA34;
+	
+	/*
+	 * This does a similiar thing, but uses a pointer path. It reads the value at the
+	 * first address (0x36D8B4) and interprets it as another address, then
+	 * adds an offset to it (0x3F0) and interprets it's value as another address.
+	 * It does this until it reaches the end of the pointer path. The last read
+	 * value is interpreted as whatever type is given for this state (in this case a "byte").
+	 */
 	byte level : 0x36D8B4, 0x3F0, 0x174;
 }
 
+/*
+ * This is an Action, which is sort of like a function that is automatically
+ * called by the ASL Component. It can interact with other Actions and LiveSplit
+ * only by special variables that the environment provides. Inside the function
+ * you can write C# code.
+ *
+ * The "startup" Action is run when the script is first loaded. This is a good
+ * place to define things you need in the whole script. This is the only place
+ * where you can define settings.
+ */
 startup
 {
 	settings.Add("episode1", true, "Episode 1");
@@ -34,14 +64,53 @@ startup
 	settings.SetToolTip("level16", @"This does not split the end of the game, it splits at the start of 'The Dark Place'.
  You'll have to split manually at the end of the run for now.");
 
+	/*
+	 * This defines a function (delegate) for easier output of
+	 * debug information. Something like this makes sense when you
+	 * have code that is required several times around the script.
+	 *
+	 * The function is assigned to a local variable, but also assigned to the dynamic
+	 * object "vars" so it can be accessed from other Actions.
+	 * 
+	 * You can assign all kinds of values to "vars" to exchange them between Actions.
+	 */
 	Action<string> DebugOutput = (text) => {
 		print("[AlanWake Autosplitter] "+text);
 	};
 	vars.DebugOutput = DebugOutput;
 }
 
+/*
+ * The "init" Action is called when the script connects to a game process. This
+ * is where you can do game-specific initialization like dectecting the game
+ * version.
+ */
 init
 {
+	/*
+	 * Detecting the game version can be useful if your script should either
+	 * support different versions of the game or if you want to disable the
+	 * script for unknown versions.
+	 *
+	 * For this, the special variable "modules" is accessed to get the
+	 * ModuleMemorySize of the process, which is then checked against the
+	 * known size for this version.
+	 *
+	 * The special "version" variable is set, which can only be done in
+	 * the "init" Action. If you had designed a State Descriptor with this
+	 * version it would now switch to that State Descriptor. This also has
+	 * the effect of displaying the version in the ASL Settings GUI and you
+	 * can access the "version" variable from other Actions.
+	 *
+	 * Note that for simply accessing the version from other Actions, you
+	 * could also save the detected version in "vars", for example like this:
+	 *
+	 * vars.gameVersion = "Steam v1.06";
+	 *
+	 * However this would *not* have the other effects that setting it to
+	 * the special "version" variable has (switching State Descriptor and
+	 * showing the version in the GUI).
+	 */
 	int moduleSize = modules.First().ModuleMemorySize;
 	if (moduleSize == 3805184)
 	{
@@ -49,14 +118,31 @@ init
 	}
 }
 
+/*
+ * The "exit" Action is called when the process the script is connected to exits.
+ *
+ * In this example the Game Time is paused while the process is closed, for example
+ * in case of a game crash.
+ */
 exit
 {
 	timer.IsGameTimePaused = true;
 }
 
+/*
+ * The "update" Action is called as long as the script is connected to a process.
+ * It is a general update Action which can be used to do stuff that should always
+ * run independant of the current Timer state.
+ */
 update
 {
-	// Disable if version not detected
+	/*
+	 * This Action is special, because if you explicitly return false from it
+	 * the other Timer Control Actions (start, reset, split, ..) won't be run.
+	 *
+	 * In this case this is used to disable the Autosplitter for unknown game
+	 * versions.
+	 */
 	if (version == "")
 		return false;
 }
