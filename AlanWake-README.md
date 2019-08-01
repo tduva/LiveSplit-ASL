@@ -1,6 +1,6 @@
 # Alan Wake Autosplitter & Load Remover
 
-This is still kind of new and experimental. If it doesn't work for you, feel free to open an Issue. This has been tested with the current Steam version.
+This has been tested with the current Steam version. Let me know if you have any issues or questions, for example by opening an Issue or asking in the [Alan Wake Speedrunning Forum](https://www.speedrun.com/aw/forum).
 
 ## Installation
 
@@ -10,15 +10,20 @@ Otherwise, you can also add it manually: [Download the script](https://raw.githu
 
 ## Usage
 
-The Autosplitter should automatically start the timer when you start a new game (if the timer is not already running). It will split at the start of every level that is in the Episodes-menu. Your splits have to match this.
+The Autosplitter supports:
 
-You'll have to manually reset your timer as well as split the end of the game, since the Autosplitter can't detect that yet.
+* Starting the timer when you start a New Game (if the timer is not already running)
+* Splitting at the end of every level that is in the Episodes-menu (at the start of the next level)
+  * You can disable splits individually in the settings (e.g. if you only wanted to split the episodes, disable all but the last split per episode and all for the last episode)
+* Splitting at the end of Any% (last cutscene becoming visible) [experimental]
+* Load removal
+  * Switch to Game Time in LiveSplit to see the timer pause when the game loads (Right-click on LiveSplit -> Compare Against -> Game Time)
 
-This will also remove loads. Switch to Game Time in LiveSplit to see the timer pause when the game loads (Right-click on LiveSplit -> Compare Against -> Game Time).
+It does not support automatic reset or splitting the Specials right now.
 
-The Autosplitter reads a level id from the game's memory that changes on every level (value in parentheses, just fyi, you can ignore that number if you simply want to use this).
+### Splits
 
-Set up your splits as follows (without the Episodes, those are just for structure):
+If you are using the default Autosplitter settings, you should set up your splits as follows (just the level names, the episodes are just for structure):
 
 * Episode 1:
 	* A Writer's Dream (1)
@@ -43,6 +48,8 @@ Set up your splits as follows (without the Episodes, those are just for structur
 
 You can download splits that match these from the [Speedrun.com Resources page](http://www.speedrun.com/aw/resources).
 
+(You don't need the number in parentheses, that is just the level id of that level.)
+
 ## More Information
 
 * Read the [Livesplit Autosplitter Documentation](https://github.com/LiveSplit/LiveSplit/blob/master/Documentation/Auto-Splitters.md) for information on how Autosplitter scripts work
@@ -50,4 +57,4 @@ You can download splits that match these from the [Speedrun.com Resources page](
 ## Technical Information
 For some reason the value makes a bit of a jump (5 -> 9) on the change to Episode 3. But that shouldn't really matter for the Autosplitter, which simply checks if the value increased. In the future, it might be checked which level is started to allow for some configuration.
 
-There is also another address (string AlanWake.exe+369F30) which contains the filename of the next cutscene, which is being preloaded at some points in the game. This could be used to allow for more splits.
+There is also another address (string AlanWake.exe+369F30) which contains the filename of the next cutscene, which is being preloaded at some points in the game. This could be used to allow for more splits. It is also used to split at the end of Any%, in combination with an address that is 0 when a video is active (byte AlanWake.exe+2C0958).
