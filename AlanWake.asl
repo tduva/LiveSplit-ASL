@@ -22,6 +22,12 @@ state("AlanWake")
 	 * value is interpreted as whatever type is given for this state (in this case a "byte").
 	 */
 	byte level : 0x36D8B4, 0x3F0, 0x174;
+
+	// Seems to contain the filename of the next video to be loaded
+	string10 nextVideo : 0x369F30;
+
+	// Seems to be 0 when video is active (works for the last one at least)
+	byte notVideo : 0x2C0958;
 }
 
 /*
@@ -61,8 +67,11 @@ startup
 
 	settings.Add("episode6", true, "Episode 6");
 	settings.Add("level16", true, "On the Road to Cauldron Lake", "episode6");
-	settings.SetToolTip("level16", @"This does not split the end of the game, it splits at the start of 'The Dark Place'.
- You'll have to split manually at the end of the run for now.");
+	settings.Add("any%", true, "End of Any%");
+	settings.SetToolTip("any%", @"This split is somewhat experimental, so it may or may not work properly.
+
+It will split about 0.5s after the last cutscene starts (since that is when
+the first visual frames of the cutscene appear, as it is split manually).");
 
 	/*
 	 * This defines a function (delegate) for easier output of
@@ -78,6 +87,8 @@ startup
 		print("[AlanWake Autosplitter] "+text);
 	};
 	vars.DebugOutput = DebugOutput;
+
+	vars.endCutsceneStarted = -1;
 }
 
 /*
@@ -145,6 +156,15 @@ update
 	 */
 	if (version == "")
 		return false;
+
+	/*
+	 * If a video has just started, and the next video to load is the last
+	 * cutscene, save the current time, so that it can split about half a
+	 * second later (when the first frame of the cutscene comes up).
+	 */
+	if (old.notVideo == 1 && current.notVideo == 0 && current.nextVideo == "cine_17300") {
+		vars.endCutsceneStarted = Environment.TickCount;
+	}
 }
 
 start
@@ -170,6 +190,19 @@ split
 		if (settings["level"+old.level])
 		{
 			vars.DebugOutput("Split Start of Level "+current.level);
+			return true;
+		}
+	}
+	if (vars.endCutsceneStarted > 0 && settings["any%"]) {
+		var timePassed = Environment.TickCount - vars.endCutsceneStarted;
+		/*
+		 * Check that enough time has passed since the last cutscene started,
+		 * but also don't allow split if too much time has passed, just as
+		 * a safeguard against it splitting later or whatever (e.g. if the
+		 * timer is stopped before it splits and then started again).
+		 */
+		if (timePassed > 530 && timePassed < 1000) {
+			vars.endCutsceneStarted = -1;
 			return true;
 		}
 	}
