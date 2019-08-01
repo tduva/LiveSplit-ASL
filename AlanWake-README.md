@@ -14,8 +14,8 @@ The Autosplitter supports:
 
 * Starting the timer when you start a New Game (if the timer is not already running)
 * Splitting at the end of every level that is in the Episodes-menu (at the start of the next level)
-  * You can disable splits individually in the settings (e.g. if you only wanted to split the episodes, disable all but the last split per episode and all for the last episode)
-* Splitting at the end of Any% (last cutscene becoming visible) [experimental]
+  * The last level of the last episode (The Dark Place) is split when the last cutscene becomes visible (End of Any%) [experimental]
+  * You can disable splits individually in the settings (e.g. if you only wanted to split the episodes, disable all but the last split per episode)
 * Load removal
   * Switch to Game Time in LiveSplit to see the timer pause when the game loads (Right-click on LiveSplit -> Compare Against -> Game Time)
 
@@ -57,4 +57,4 @@ You can download splits that match these from the [Speedrun.com Resources page](
 ## Technical Information
 For some reason the value makes a bit of a jump (5 -> 9) on the change to Episode 3. But that shouldn't really matter for the Autosplitter, which simply checks if the value increased. In the future, it might be checked which level is started to allow for some configuration.
 
-There is also another address (string AlanWake.exe+369F30) which contains the filename of the next cutscene, which is being preloaded at some points in the game. This could be used to allow for more splits. It is also used to split at the end of Any%, in combination with an address that is 0 when a video is active (byte AlanWake.exe+2C0958).
+There is also another address (string AlanWake.exe+369F30) which contains the filename of the next cutscene, which is being preloaded at some points in the game. This could be used to allow for more splits. It is also used to split at the end of Any%, in combination with an address that is 0 when a video is active (byte AlanWake.exe+2C0958). Since this split would be too early (when the cutscene starts, rather than when it becomes visible), the split is delayed by about 0.5s (usually splits at the second visible frame or so).

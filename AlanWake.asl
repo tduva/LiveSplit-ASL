@@ -5,6 +5,9 @@
  * Optionally, you can also define one or several states that should be read
  * from the game's memory, which you can then access in other places in the
  * script. This is commonly the way to go for simple scripts.
+ *
+ * https://github.com/LiveSplit/LiveSplit/blob/master/Documentation/Auto-Splitters.md
+ * https://github.com/tduva/LiveSplit-ASL/blob/master/AlanWake-README.md
  */
 state("AlanWake")
 {
@@ -67,11 +70,9 @@ startup
 
 	settings.Add("episode6", true, "Episode 6");
 	settings.Add("level16", true, "On the Road to Cauldron Lake", "episode6");
-	settings.Add("any%", true, "End of Any%");
-	settings.SetToolTip("any%", @"This split is somewhat experimental, so it may or may not work properly.
-
-It will split about 0.5s after the last cutscene starts (since that is when
-the first visual frames of the cutscene appear, as it is split manually).");
+	settings.Add("any%", true, "The Dark Place (End of Any%) [experimental]", "episode6");
+	settings.SetToolTip("any%", @"This will split when the last cutscene becomes visible (about 0.5s after it starts),
+which is equivalent to the manual Any% split.");
 
 	/*
 	 * This defines a function (delegate) for easier output of
@@ -200,6 +201,11 @@ split
 		 * but also don't allow split if too much time has passed, just as
 		 * a safeguard against it splitting later or whatever (e.g. if the
 		 * timer is stopped before it splits and then started again).
+		 *
+		 * This usually seems to split at around the second visible frame of
+		 * the cutscene (rather split a frame too late than too early). Either
+		 * way, this should be close enough and more accurate than splitting
+		 * manually.
 		 */
 		if (timePassed > 530 && timePassed < 1000) {
 			vars.endCutsceneStarted = -1;
