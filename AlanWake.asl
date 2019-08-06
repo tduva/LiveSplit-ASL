@@ -9,7 +9,7 @@
  * https://github.com/LiveSplit/LiveSplit/blob/master/Documentation/Auto-Splitters.md
  * https://github.com/tduva/LiveSplit-ASL/blob/master/AlanWake-README.md
  */
-state("AlanWake")
+state("AlanWake", "v1.06.17.0154 (Steam)")
 {
 	/*
 	 * This reads a simple boolean (bool) value from the given address and stores
@@ -26,11 +26,21 @@ state("AlanWake")
 	 */
 	byte level : 0x36D8B4, 0x3F0, 0x174;
 
-	// Seems to contain the filename of the next video to be loaded
-	string10 nextVideo : 0x369F30;
+	int video : 0x2C0934, 0x5c8;
+}
 
-	// Seems to be 0 when video is active (works for the last one at least)
-	byte notVideo : 0x2C0958;
+state("AlanWake", "v1.06.17.0155 (GoG)")
+{
+	bool isLoading : 0x36CA74;
+	byte level : 0x36E618, 0x208;
+	int video : 0x2C1974, 0x5c8;
+}
+
+state("AlanWake", "v1.05.16.7103 (EGS)")
+{
+	bool isLoading : 0x36AA74;
+	byte level : 0x36C618, 0x208;
+	int video : 0x2BF974, 0x5c8;
 }
 
 /*
@@ -45,34 +55,99 @@ state("AlanWake")
  */
 startup
 {
+	/*
+	 * Delay some splits by a certain amount of milliseconds. This currently
+	 * only works for videos/any%.
+	 */
+	vars.delayedSplits = new Dictionary<string,int> {
+		{"any%", 530},
+		{"video_2500", 450},
+		{"video_5700", 2550},
+		{"video_9300", 530},
+		{"video_12300", 2000},
+		{"video_15350", 200},
+		{"video_16300", 1000},
+		{"video_18700", 1000},
+	};
+
+	/*
+	 * Checks if the given split id should be delayed, and sets the according
+	 * values if so.
+	 *
+	 * Returns true if the split is to be delayed and should not be split
+	 * immediately.
+	 */
+	Func<string, bool> DelayedSplit = (splitId) => {
+		if (vars.delayedSplits.ContainsKey(splitId))
+		{
+			var delay = vars.delayedSplits[splitId];
+			vars.DebugOutput("Delayed split "+splitId+" ("+delay+")");
+			vars.delayedSplitTime = Environment.TickCount + delay;
+			vars.delayedSplitName = splitId;
+			return true;
+		}
+		else
+		{
+			vars.DebugOutput("Split "+splitId);
+			return false;
+		}
+	};
+	vars.DelayedSplit = DelayedSplit;
+
+	Action<int, string, string, string> AddLevelSplit = (key, name, description, episode) => {
+		settings.Add("level"+key, true, name, episode);
+		settings.SetToolTip("level"+key, description);
+	};
+
+	Action<int, string, string, string> AddVideoSplit = (key, name, description, episode) => {
+		var settingKey = "video_"+key;
+		settings.Add(settingKey, false, "[Cinematic] "+name, episode);
+		settings.SetToolTip(settingKey, description);
+	};
+
 	settings.Add("episode1", true, "Episode 1");
-	settings.Add("level1", true, "A Writer's Dream", "episode1");
-	settings.Add("level2", true, "Welcome to Bright Falls", "episode1");
-	settings.Add("level3", true, "Waking up to a Nightmare", "episode1");
+	AddLevelSplit(1, "A Writer's Dream", "Splits after entering the lighthouse", "episode1");
+	AddVideoSplit(2500, "Diner", "Splits when leaving the Diner", "episode1");
+	AddLevelSplit(2, "Welcome to Bright Falls", "Splits after getting back to the cabin", "episode1");
+	AddVideoSplit(3300, "Crashed", "Splits when entering the container", "episode1");
+	AddLevelSplit(3, "Waking up to a Nightmare", "Splits on the transition to Episode 2", "episode1");
 
 	settings.Add("episode2", true, "Episode 2");
-	settings.Add("level4", true, "Bright Falls Sheriff's Station", "episode2");
-	settings.Add("level5", true, "Elderwood National Park", "episode2");
+	AddLevelSplit(4, "Bright Falls Sheriff's Station", "Splits after leaving the Station", "episode2");
+	AddVideoSplit(5600, "Rusty", "Splits when crashing the cable car", "episode2");
+	AddVideoSplit(5700, "Kidnapper", "Splits after Lover's Peak", "episode2");
+	AddLevelSplit(5, "Elderwood National Park", "Splits on the transition to Episode 3", "episode2");
 
 	settings.Add("episode3", true, "Episode 3");
+	AddVideoSplit(9300, "Rose", "Splits when leaving the trailer park", "episode3");
+	AddVideoSplit(9500, "Radio Station", "Splits when leaving the radio station", "episode3");
 	// Level ID makes a jump here
-	settings.Add("level9", true, "On the Run", "episode3");
-	settings.Add("level10", true, "Mirror Peak", "episode3");
+	AddLevelSplit(9, "On the Run", "Splits when getting into the car", "episode3");
+	AddVideoSplit(10300, "Coalmine (Day)", "Splits when entering the coalmine", "episode3");
+	AddLevelSplit(10, "Mirror Peak", "Splits on the transition to Episode 4", "episode3");
 
 	settings.Add("episode4", true, "Episode 4");
-	settings.Add("level11", true, "Cauldron Lake Lodge", "episode4");
-	settings.Add("level12", true, "The Anderson Farm", "episode4");
-	settings.Add("level13", true, "The Night It All Began", "episode4");
+	AddVideoSplit(11500, "Hartman", "Splits when entering Hartman's office", "episode4");
+	AddLevelSplit(11, "Cauldron Lake Lodge", "Splits after escaping with Barry", "episode4");
+	AddVideoSplit(12300, "To the Farm", "Splits when finding Barry on the stage", "episode4");
+	AddLevelSplit(12, "The Anderson Farm", "Splits after playing the record", "episode4");
+	AddLevelSplit(13, "The Night It All Began", "Splits on the transition to Episode 5", "episode4");
 
 	settings.Add("episode5", true, "Episode 5");
-	settings.Add("level14", true, "Night Life in Bright Falls", "episode5");
-	settings.Add("level15", true, "Bright Falls Light & Power", "episode5");
+	AddVideoSplit(14300, "Bright Falls 1", "Splits after getting the helicopter keys", "episode5");
+	AddLevelSplit(14, "Night Life in Bright Falls", "Splits after getting into the helicopter", "episode5");
+	AddVideoSplit(15350, "Lady of the Light", "Splits when entering the water pipe", "episode5");
+	AddLevelSplit(15, "Bright Falls Light & Power", "Splits on the transition to Episode 6", "episode5");
 
 	settings.Add("episode6", true, "Episode 6");
-	settings.Add("level16", true, "On the Road to Cauldron Lake", "episode6");
-	settings.Add("any%", true, "The Dark Place (End of Any%) [experimental]", "episode6");
-	settings.SetToolTip("any%", @"This will split when the last cutscene becomes visible (about 0.5s after it starts),
+	AddVideoSplit(16300, "On the Road (Day)", "Splits at the flash in the first tunnel", "episode6");
+	AddVideoSplit(18700, "Bridge/Junkyard", "Splits at the flash in the old town", "episode6");
+	AddLevelSplit(16, "On the Road to Cauldron Lake", "Splits after defeating the tornado", "episode6");
+	settings.Add("any%", true, "The Dark Place (End of Any%)", "episode6");
+	settings.SetToolTip("any%", @"Splits when the last cutscene becomes visible (about 0.5s after it starts),
 which is equivalent to the manual Any% split.");
+
+	//settings.Add("video_4100", true, "Test2");
 
 	/*
 	 * This defines a function (delegate) for easier output of
@@ -89,7 +164,9 @@ which is equivalent to the manual Any% split.");
 	};
 	vars.DebugOutput = DebugOutput;
 
-	vars.endCutsceneStarted = -1;
+	vars.delayedSplitTime = -1;
+	vars.delayedSplitName = "";
+	vars.prevUpdateTime = -1;
 }
 
 /*
@@ -126,7 +203,15 @@ init
 	int moduleSize = modules.First().ModuleMemorySize;
 	if (moduleSize == 3805184)
 	{
-		version = "Steam v1.06";
+		version = "v1.06.17.0154 (Steam)";
+	}
+	if (moduleSize == 3809280)
+	{
+		version = "v1.06.17.0155 (GoG)";
+	}
+	if (moduleSize == 3801088)
+	{
+		version = "v1.05.16.7103 (EGS)";
 	}
 }
 
@@ -148,6 +233,15 @@ exit
  */
 update
 {
+	// Debug output
+	var timeSinceLastUpdate = Environment.TickCount - vars.prevUpdateTime;
+	if (timeSinceLastUpdate > 500 && vars.prevUpdateTime != -1)
+	{
+		vars.DebugOutput("Last update "+timeSinceLastUpdate+"ms ago");
+	}
+	vars.prevUpdateTime = Environment.TickCount;
+
+
 	/*
 	 * This Action is special, because if you explicitly return false from it
 	 * the other Timer Control Actions (start, reset, split, ..) won't be run.
@@ -157,15 +251,6 @@ update
 	 */
 	if (version == "")
 		return false;
-
-	/*
-	 * If a video has just started, and the next video to load is the last
-	 * cutscene, save the current time, so that it can split about half a
-	 * second later (when the first frame of the cutscene comes up).
-	 */
-	if (old.notVideo == 1 && current.notVideo == 0 && current.nextVideo == "cine_17300") {
-		vars.endCutsceneStarted = Environment.TickCount;
-	}
 }
 
 start
@@ -178,12 +263,25 @@ start
 
 split
 {
+	/*
+	 * Never split in the first few seconds, since starting an episode could
+	 * immediately split under the right circumstances.
+	 */
+	if (timer.CurrentTime.RealTime < TimeSpan.FromSeconds(4))
+	{
+		return;
+	}
+
 	if (old.level == 0)
 	{
 		// Game starting
 		return;
 	}
-	if (current.level == old.level+1 || current.level == 9 && old.level == 5)
+
+	/*
+	 * Level-based splitting
+	 */
+	if (current.level == old.level+1 || (current.level == 9 && old.level == 5))
 	{
 		print(current.level.ToString());
 		// Check setting for previous level value, because the split would
@@ -194,21 +292,51 @@ split
 			return true;
 		}
 	}
-	if (vars.endCutsceneStarted > 0 && settings["any%"]) {
-		var timePassed = Environment.TickCount - vars.endCutsceneStarted;
+
+	/*
+	 * Cinematic-based splitting
+	 */
+	if (current.video > old.video)
+	{
+		if (settings.ContainsKey("video_"+current.video) && settings["video_"+current.video])
+		{
+			/*
+			 * This "flash" with the same number occurs several times
+			 * (e.g. heli fight), but this should only split in the old town
+			 * in episode 6. There's also a few more after that in the same
+			 * level, but since there are no other videos in between, the
+			 * value won't change, so this won't be called.
+			 */
+			if (current.video == 18700 && current.level != 16)
+			{
+				return false;
+			}
+			if (!vars.DelayedSplit("video_"+current.video))
+			{
+				return true;
+			}
+		}
+		if (settings["any%"] && current.video == 17300)
+		{
+			vars.DelayedSplit("any%");
+		}
+	}
+
+	/*
+	 * Delayed splitting
+	 */
+	if (vars.delayedSplitTime > 0) {
 		/*
 		 * Check that enough time has passed since the last cutscene started,
 		 * but also don't allow split if too much time has passed, just as
 		 * a safeguard against it splitting later or whatever (e.g. if the
 		 * timer is stopped before it splits and then started again).
-		 *
-		 * This usually seems to split at around the second visible frame of
-		 * the cutscene (rather split a frame too late than too early). Either
-		 * way, this should be close enough and more accurate than splitting
-		 * manually.
 		 */
-		if (timePassed > 530 && timePassed < 1000) {
-			vars.endCutsceneStarted = -1;
+		if (Environment.TickCount > vars.delayedSplitTime
+			&& Environment.TickCount - 500 < vars.delayedSplitTime)
+		{
+			vars.delayedSplitTime = -1;
+			vars.DebugOutput("Split "+vars.delayedSplitName);
 			return true;
 		}
 	}
