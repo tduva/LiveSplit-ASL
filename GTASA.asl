@@ -59,7 +59,8 @@ startup
 		{"Photos",	new List<int> {0x7791BC, 0x80C3E4}},
 		{"Tags",	new List<int> {0x69AD74, 0x71258C}},
 		{"Oysters",	new List<int> {0x7791EC, 0x80C414}},
-		{"Horseshoes", 	new List<int> {0x7791E4, 0x80C40C}}
+		{"Horseshoes", 	new List<int> {0x7791E4, 0x80C40C}},
+		{"Stunts (Completed)", new List<int> {0x779064, 0x80C28C}}
 	};
 
 	// Missions
@@ -1066,6 +1067,8 @@ split
 				int max = 50;
 				if (type == "Tags")
 					max = 100;
+				if (type == "Stunts (Completed)")
+					max = 70;
 				if (value.Current == max && value.Old == max-1)
 				{
 					return vars.TrySplit(type+"All");
