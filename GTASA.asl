@@ -398,7 +398,10 @@ startup
 	vars.startMissions = new Dictionary<string, string> {
 		{"grove2", "GT #1"},	// Grove 4 Life
 		{"manson5", "GT #2"},	// Cut Throat Business
-		{"steal", "Wang Cars (Showroom Bought)"}
+		{"steal", "Wang Cars (Showroom Bought)"},
+		{"planes", "Plane Flight"},
+		{"psch", "Verdant Meadows (Safehouse)"},
+		{"dskool", "Driving School Started"}
 	};
 
 	//=============================================================================
@@ -644,6 +647,8 @@ startup
 	addMissionsHeader("Trucking", 0x6518DC, "Trucking");
 	addMissions2Header("Assets", true, "Other Asset Missions");
 	addMissions2Header("Schools", true, "Schools");
+	settings.Add("Driving School Started", false, "Driving School Started", "Schools");
+	settings.SetToolTip("Driving School Started", "Splits when starting Driving School for the first time");
 	addMissions2Header("Vehicle Submissions", true, "Vehicle Submissions");
 	addMissionList("Vehicle Submissions", new List<string>() { "Freight Level 1", "Freight Level 2" });
 	addMissions2Header("Gym Moves", true, "Gym Moves");
@@ -697,8 +702,11 @@ startup
 	settings.CurrentDefaultParent = null;
 	settings.Add("Other", false);
 	settings.CurrentDefaultParent = "Other";
+	settings.Add("Plane Flight", false);
+	settings.SetToolTip("Plane Flight", "Splits when entering the ticket machine marker for the first time");
 	// Add "Properties" before addMissions2, so Wang Cars can be added at the top
 	settings.Add("Properties", false);
+	settings.Add("Verdant Meadows (Safehouse)", false, "Verdant Meadows (Safehouse)", "Properties");
 	settings.Add("Wang Cars (Showroom Bought)", false, "Wang Cars (Showroom Bought)", "Properties");
 	addMissions2("Properties", false);
 	settings.CurrentDefaultParent = null;
