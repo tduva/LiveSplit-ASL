@@ -29,11 +29,15 @@ state("AlanWake", "v1.06.17.0154 (Steam)")
 	int video : 0x2C0934, 0x5c8;
 }
 
+/*
+ * Specifying the module to read from for the up-to-date ones, since it once seemed
+ * like the first module wasn't the correct one when starting, haven't noticed it again though.
+ */
 state("AlanWake", "v1.06.17.0155 (GoG)")
 {
-	bool isLoading : 0x36CA74;
-	byte level : 0x36E618, 0x208;
-	int video : 0x2C1974, 0x5c8;
+	bool isLoading : "alanwake.exe", 0x36CA74;
+	byte level : "alanwake.exe", 0x36E618, 0x208;
+	int video : "alanwake.exe", 0x2C1974, 0x5c8;
 }
 
 state("AlanWake", "v1.05.16.7103 (EGS)")
@@ -41,6 +45,20 @@ state("AlanWake", "v1.05.16.7103 (EGS)")
 	bool isLoading : 0x36AA74;
 	byte level : 0x36C618, 0x208;
 	int video : 0x2BF974, 0x5c8;
+}
+
+state("AlanWake", "v1.07.33.72514 (Steam)")
+{
+	bool isLoading : "alanwake.exe", 0x36AA34;
+	byte level : "alanwake.exe", 0x36C8B4, 0x3F0, 0x174;
+	int video : "alanwake.exe", 0x2BF934, 0x5c8;
+}
+
+state("AlanWake", "v1.07.33.72514 (EGS)")
+{
+	bool isLoading : "alanwake.exe", 0x36BA04;
+	byte level : "alanwake.exe", 0x36D5A8, 0x208;
+	int video : "alanwake.exe", 0x2C0904, 0x5c8;
 }
 
 /*
@@ -164,6 +182,23 @@ which is equivalent to the manual Any% split.");
 	};
 	vars.DebugOutput = DebugOutput;
 
+	// Based on: https://github.com/NoTeefy/LiveSnips/blob/master/src/snippets/checksum(hashing)/checksum.asl
+	Func<ProcessModuleWow64Safe, string> CalcModuleHash = (module) => {
+		vars.DebugOutput("Calcuating hash of "+module.FileName);
+		byte[] exeHashBytes = new byte[0];
+		using (var sha = System.Security.Cryptography.MD5.Create())
+		{
+			using (var s = File.Open(module.FileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+			{
+				exeHashBytes = sha.ComputeHash(s);
+			}
+		}
+		var hash = exeHashBytes.Select(x => x.ToString("X2")).Aggregate((a, b) => a + b);
+		vars.DebugOutput("Hash: "+hash);
+		return hash;
+	};
+	vars.CalcModuleHash = CalcModuleHash;
+
 	vars.delayedSplitTime = -1;
 	vars.delayedSplitName = "";
 	vars.prevUpdateTime = -1;
@@ -185,8 +220,14 @@ init
 	 * ModuleMemorySize of the process, which is then checked against the
 	 * known size for this version.
 	 *
+	 * Checking the size works fine as long as all different versions have
+	 * a different size. In this case check hash is checked for newer version
+	 * and only afterwards does it check the size for older versions in case
+	 * the version wasn't detected yet (don't have the hash yet for the older
+	 * ones).
+	 *
 	 * The special "version" variable is set, which can only be done in
-	 * the "init" Action. If you had designed a State Descriptor with this
+	 * the "init" Action. If you had defined a State Descriptor with this
 	 * version it would now switch to that State Descriptor. This also has
 	 * the effect of displaying the version in the ASL Settings GUI and you
 	 * can access the "version" variable from other Actions.
@@ -200,16 +241,35 @@ init
 	 * the special "version" variable has (switching State Descriptor and
 	 * showing the version in the GUI).
 	 */
-	int moduleSize = modules.First().ModuleMemorySize;
-	if (moduleSize == 3805184)
+	var module = modules.Single(x => String.Equals(x.ModuleName, "AlanWake.exe", StringComparison.OrdinalIgnoreCase));
+	var moduleSize = module.ModuleMemorySize;
+	vars.DebugOutput("Module Size: "+moduleSize+" "+module.ModuleName);
+	var hash = vars.CalcModuleHash(module);
+	if (hash == "7B1242BCFBA3C633EFC3E5397B85C848")
+	{
+		// Module Size: 3801088
+		version = "v1.07.33.72514 (Steam)";
+	}
+	else if (hash == "476D34D60403BBD8D8A3177DD291916D")
+	{
+		// Module Size: 3805184
+		version = "v1.07.33.72514 (EGS)";
+	}
+	else if (hash == "1D5248B50A1E7D22E53371BEAFF1DA37")
+	{
+		// Module Size: 3809280
+		version = "v1.06.17.0155 (GoG)";
+	}
+	// Fallback for possible older versions
+	else if (moduleSize == 3805184)
 	{
 		version = "v1.06.17.0154 (Steam)";
 	}
-	if (moduleSize == 3809280)
+	else if (moduleSize == 3809280)
 	{
 		version = "v1.06.17.0155 (GoG)";
 	}
-	if (moduleSize == 3801088)
+	else if (moduleSize == 3801088)
 	{
 		version = "v1.05.16.7103 (EGS)";
 	}
@@ -283,7 +343,6 @@ split
 	 */
 	if (current.level == old.level+1 || (current.level == 9 && old.level == 5))
 	{
-		print(current.level.ToString());
 		// Check setting for previous level value, because the split would
 		// be for the end of the previous level
 		if (settings["level"+old.level])
