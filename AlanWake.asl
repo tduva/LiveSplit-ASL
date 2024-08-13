@@ -49,6 +49,8 @@ state("AlanWake", "v1.05.16.7103 (EGS)")
 
 state("AlanWake", "v1.07.33.72514 (Steam)")
 {
+	// g_fSimulationTime
+	float time: "renderer_sf_Win32.dll", 0x1937E8;
 	bool isLoading : "alanwake.exe", 0x36AA34;
 	byte level : "alanwake.exe", 0x36C8B4, 0x3F0, 0x174;
 	int video : "alanwake.exe", 0x2BF934, 0x5c8;
@@ -73,6 +75,7 @@ state("AlanWake", "v1.07.33.72514 (EGS)")
  */
 startup
 {
+	vars.start_time = 0;
 	/*
 	 * Delay some splits by a certain amount of milliseconds. This currently
 	 * only works for videos/any%.
@@ -315,6 +318,7 @@ update
 
 start
 {
+	vars.start_time = current.time;
 	if (current.isLoading && current.level == 1) {
 		vars.DebugOutput("Timer started");
 		return true;
@@ -403,7 +407,12 @@ split
 
 isLoading
 {
+	if (version == "v1.07.33.72514 (Steam)") {
+		return true;
+	}
 	return current.isLoading;
 }
 
-
+gameTime {
+	return TimeSpan.FromSeconds(current.time - vars.start_time);
+}
