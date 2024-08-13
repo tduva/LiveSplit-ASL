@@ -58,6 +58,8 @@ state("AlanWake", "v1.07.33.72514 (Steam)")
 
 state("AlanWake", "v1.07.33.72514 (EGS)")
 {
+	// g_fSimulationTime
+	float time: "renderer_f_Win32.dll", 0x1937E8;
 	bool isLoading : "alanwake.exe", 0x36BA04;
 	byte level : "alanwake.exe", 0x36D5A8, 0x208;
 	int video : "alanwake.exe", 0x2C0904, 0x5c8;
@@ -407,10 +409,7 @@ split
 
 isLoading
 {
-	if (version == "v1.07.33.72514 (Steam)") {
-		return true;
-	}
-	return current.isLoading;
+	return true;
 }
 
 gameTime {
