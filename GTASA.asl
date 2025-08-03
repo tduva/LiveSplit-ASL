@@ -752,7 +752,7 @@ init
 	var versionValue = 38079;
 	int versionOffset = 0;
 
-	int playingTimeAddr = 	0x77CB84;
+	int playingTimeAddr = 	0x68ECF0;
 	int startAddr =		0x77CEDC;
 	int threadAddr =	0x68B42C;
 	int loadingAddr =	0x7A67A5;
@@ -811,7 +811,7 @@ init
 		// as just "Steam"
 		versionOffset = 0x77970;
 		version = "Steam";
-		playingTimeAddr = 0x80FD74;
+		playingTimeAddr = 0x706660;
 		startAddr =	0x810214;
 		threadAddr =	0x702D98;
 		loadingAddr =	0x833995;
@@ -1231,6 +1231,9 @@ start
 	var started = vars.watchers["started"];
 	var intro_state = vars.watchers["intro_state"];
 	var loading = vars.watchers["loading"];
+	var thread = vars.watchers["thread"];
+
+	var earlyGameThreads = new List<string> {"a_cont", "main", "intro", "gfagnt", "noname"};
 
 	/*
 	 * Note:
@@ -1240,25 +1243,19 @@ start
 
 	// New Game
 	//=========
-	/*
-	 * intro_state is a variable only used in the intro mission, changing from
-	 * 0 to 1 when the cutscene is skipped. It gets set to other values during the
-	 * intro cutscene, so the timer will only start when you skip the cutscene
-	 * within the first 90s or so.
-	 *
-	 * Since the value seems to stay at 1 until after, but not sometime later in
-	 * the game, loading a Save can sometimes trigger New Game, so also check if
-	 * playingTime is low enough (60s).
-	 *
-	 * In the commonly used decompiled main.scm, this should be the variable $5353.
+	/* 
+	 * The timer uses the playing time to start as soon as the game loads. 
+	 * The thread check is there to make sure it doesn't start and reset on loading a save.
 	 */
-	if (intro_state.Current == 1 && intro_state.Old == 0 && playingTime.Current < 60*1000)
+	if (playingTime.Current > 0 && playingTime.Old == 0 && earlyGameThreads.Contains(thread.Current))
 	{
 		if (settings.StartEnabled)
 		{
 			// Only output when actually starting timer (the return value of this method
 			// is only respected by LiveSplit when the setting is actually enabled)
-			vars.DebugOutput("New Game"+playingTime.Current);
+			vars.DebugOutput("New Game");
+			vars.DebugOutput("Playing Time: "+playingTime.Current);
+			vars.DebugOutput("Thread: "+thread.Current);
 		}
 		return true;
 	}
@@ -1288,22 +1285,11 @@ reset
 
 	var playingTime = vars.watchers["playingTime"];
 	var intro_state = vars.watchers["intro_state"];
-	/*
-	 * Previously the playingTime was used to reset the timer, although it seems like for
-	 * different people the game started at different playingTime values (probably depending
-	 * on game version and loading times), so sometimes the timer would be reset after the
-	 * game started.
-	 *
-	 * This is now using the same value changes as for starting the timer, so the time
-	 * should be reset (if running) and started in the same update iteration. Still check
-	 * a reasonable playingTime interval though, so that there is no chance of the timer
-	 * being reset midgame.
-	 *
-	 * With this method, the timer resets even later than before, making accidental resets
-	 * when e.g. starting a new game instead of loading a save even less a problem (because
-	 * you have enough time to ESC before the timer is reset).
-	 */
-	if (intro_state.Current == 1 && intro_state.Old == 0 && playingTime.Current > 2000 && playingTime.Current < 60*1000)
+	var thread = vars.watchers["thread"];
+
+	var earlyGameThreads = new List<string> {"a_cont", "main", "intro", "gfagnt", "noname"};
+
+	if (playingTime.Current > 0 && playingTime.Old == 0 && earlyGameThreads.Contains(thread.Current))
 	{
 		if (settings.ResetEnabled)
 		{
