@@ -6,8 +6,8 @@ Since this is still a Work in Progress, not everything may work correctly yet. Y
 
 ## Features
 
-* Auto start (on skipping the first cutscene)
-* Auto reset (on skipping the first cutscene, if you start a New Game by accident you have a few seconds to ESC before that to prevent a reset)
+* Auto start (on initial load screen fadeout)
+* Auto reset (on initial load screen fadeout)
 * Autosplit available for:
   * All Main Story Missions (any%)
   * Most Sidemissions (All Missions/100%)
