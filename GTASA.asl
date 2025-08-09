@@ -1245,9 +1245,9 @@ start
 	//=========
 	/* 
 	 * The timer uses the playing time to start as soon as the game loads. 
-	 * The thread check is there to make sure it doesn't start and reset on loading a save.
+	 * The thread and time checks are there to make sure it doesn't start and reset on loading a save.
 	 */
-	if (playingTime.Current > 0 && playingTime.Old == 0 && earlyGameThreads.Contains(thread.Current))
+	if (playingTime.Current > 0 && playingTime.Old == 0 && playingTime.Current < 60 * 1000 && earlyGameThreads.Contains(thread.Current))
 	{
 		if (settings.StartEnabled)
 		{
@@ -1283,13 +1283,14 @@ reset
 	// Resetting Timer
 	//=============================================================================
 
+	// Same logic as starting the timer to have both run in the same cycle
 	var playingTime = vars.watchers["playingTime"];
 	var intro_state = vars.watchers["intro_state"];
 	var thread = vars.watchers["thread"];
 
 	var earlyGameThreads = new List<string> {"a_cont", "main", "intro", "gfagnt", "noname"};
 
-	if (playingTime.Current > 0 && playingTime.Old == 0 && earlyGameThreads.Contains(thread.Current))
+	if (playingTime.Current > 0 && playingTime.Old == 0 && playingTime.Current < 60 * 1000 && earlyGameThreads.Contains(thread.Current))
 	{
 		if (settings.ResetEnabled)
 		{
