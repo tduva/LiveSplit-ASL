@@ -987,28 +987,35 @@ init
 
 update
 {
-	//=============================================================================
-	// General Housekeeping
-	//=============================================================================
-	// Disable all timer control actions if version was not detected
-	if (!vars.enabled)
-		return false;
-
-	// Update always, to prevent splitting after loading (if possible, doesn't seem to be 100% reliable)
-	vars.watchers.UpdateAll(game);
-
-	// Clear list of already executed splits if timer is reset
-	if (timer.CurrentPhase != vars.PrevPhase)
+	try
 	{
-		if (timer.CurrentPhase == TimerPhase.NotRunning)
-		{
-			vars.split.Clear();
-			vars.DebugOutput("Cleared list of already executed splits");
-		}
-		vars.PrevPhase = timer.CurrentPhase;
-	}
+		//=============================================================================
+		// General Housekeeping
+		//=============================================================================
+		// Disable all timer control actions if version was not detected
+		if (!vars.enabled)
+			return false;
 
-	//print(vars.watchers["pedStatus"].Current.ToString());
+		// Update always, to prevent splitting after loading (if possible, doesn't seem to be 100% reliable)
+		vars.watchers.UpdateAll(game);
+
+		// Clear list of already executed splits if timer is reset
+		if (timer.CurrentPhase != vars.PrevPhase)
+		{
+			if (timer.CurrentPhase == TimerPhase.NotRunning)
+			{
+				vars.split.Clear();
+				vars.DebugOutput("Cleared list of already executed splits");
+			}
+			vars.PrevPhase = timer.CurrentPhase;
+		}
+
+		//print(vars.watchers["pedStatus"].Current.ToString());
+	}
+	catch
+	{
+		return false;
+	}
 }
 
 split
